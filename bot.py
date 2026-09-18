@@ -1,3 +1,4 @@
+import datetime
 import telebot
 from telebot import types
 
@@ -13,11 +14,13 @@ bot = telebot.TeleBot(TOKEN)
 user_states = {}
 
 def save_to_database(record_type, user_info, text):
-    current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    record = f"[{current_time}] TYPE: {record_type} | USER: {user_info}\nCONTENT: {text}\n" + "-"*40 + "\n"
-    
-    with open("database.txt", "a", encoding="utf-8") as f:
-        f.write(record)
+    try:
+        current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        record = f"[{current_time}] TYPE: {record_type} | USER: {user_info}\nCONTENT: {text}\n" + "-"*40 + "\n"
+        with open("database.txt", "a", encoding="utf-8") as f:
+            f.write(record)
+    except Exception as e:
+        print(f"Ошибка сохранения в базу: {e}")
 
 def get_latest_trends():
     trends_text = (
@@ -34,7 +37,6 @@ def send_welcome(message):
     user_id = message.from_user.id
     user_states[user_id] = None
     
-    # Настраиваем аккуратное главное меню
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
     item_designer = types.KeyboardButton('🎨 Разместить резюме (Найти работу)')
     item_seller = types.KeyboardButton('🛍 Разместить заказ (Найти исполнителя)')
@@ -56,6 +58,9 @@ def handle_message(message):
     user_id = message.from_user.id
     username = f"@{message.from_user.username}" if message.from_user.username else f"ID: {user_id}"
     text = message.text
+    current_state = user_states.get(user_id)
+
+    print(f"Получено сообщение от {username} (Состояние: {current_state}): {text}")
 
     if text == '🎨 Разместить резюме (Найти работу)':
         user_states[user_id] = 'waiting_for_designer_portfolio'
@@ -66,7 +71,8 @@ def handle_message(message):
             "• Ваше имя / направление\n"
             "• Опыт работы и навыки\n"
             "• Ссылку на портфолио\n"
-            "• Способ связи (Telegram / Телефон)"
+            "• Способ связи (Telegram / Телефон)",
+            parse_mode='Markdown'
         )
     elif text == '🛍 Разместить заказ (Найти исполнителя)':
         user_states[user_id] = 'waiting_for_seller_task'
@@ -77,7 +83,8 @@ def handle_message(message):
             "• Что нужно сделать\n"
             "• Требования к исполнителю\n"
             "• Бюджет / Сроки\n"
-            "• Как с вами связаться"
+            "• Как с вами связаться",
+            parse_mode='Markdown'
         )
     elif text == '📰 Новости и советы':
         news_message = get_latest_trends()
@@ -88,12 +95,11 @@ def handle_message(message):
             message.chat.id, 
             "ℹ️ **О платформе:**\n\n"
             "Это независимая площадка для быстрой связи локальных специалистов и заказчиков.\n"
-            "Все заявки проходят модерацию для защиты от спама."
+            "Все заявки проходят модерацию для защиты от спама.",
+            parse_mode='Markdown'
         )
     
     else:
-        current_state = user_states.get(user_id)
-        
         if current_state == 'waiting_for_designer_portfolio':
             save_to_database("RESUME / SPECIALIST", username, text)
             
@@ -102,13 +108,15 @@ def handle_message(message):
             admin_markup = types.InlineKeyboardMarkup(row_width=2)
             admin_markup.add(
                 types.InlineKeyboardButton("✅ Одобрить", callback_data=f"approve_des_{user_id}"),
-                types.InlineKeyboardButton("❌ Отклонить", callback_data=f"reject_{user_id}")
+                types.InlineKeyboardButton("❌ Отклонить", callback_data=f"reject_des_{user_id}")
             )
             
             try:
+                print(f"Пытаюсь отправить резюме админу {ADMIN_ID}...")
                 bot.send_message(ADMIN_ID, admin_text, parse_mode='Markdown', reply_markup=admin_markup)
+                print("Уведомление админу успешно отправлено!")
             except Exception as e:
-                print(f"Ошибка отправки администратору: {e}")
+                print(f"ОШИБКА отправки администратору: {e}")
             
             bot.send_message(
                 message.chat.id, 
@@ -124,13 +132,15 @@ def handle_message(message):
             admin_markup = types.InlineKeyboardMarkup(row_width=2)
             admin_markup.add(
                 types.InlineKeyboardButton("✅ Опубликовать", callback_data=f"approve_sel_{user_id}"),
-                types.InlineKeyboardButton("❌ Отклонить", callback_data=f"reject_{user_id}")
+                types.InlineKeyboardButton("❌ Отклонить", callback_data=f"reject_sel_{user_id}")
             )
             
             try:
+                print(f"Пытаюсь отправить заказ админу {ADMIN_ID}...")
                 bot.send_message(ADMIN_ID, admin_text, parse_mode='Markdown', reply_markup=admin_markup)
+                print("Уведомление админу успешно отправлено!")
             except Exception as e:
-                print(f"Ошибка отправки администратору: {e}")
+                print(f"ОШИБКА отправки администратору: {e}")
             
             bot.send_message(
                 message.chat.id, 
@@ -150,9 +160,9 @@ def callback_query(call):
     parts = data.split('_')
     action = parts[0]
     target_type = parts[1]
+    target_user_id = int(parts[2])
     
     if action == 'approve':
-        target_user_id = int(parts[2])
         if target_type == 'des':
             bot.send_message(target_user_id, "🎉 Ваше резюме одобрено и опубликовано!")
         elif target_type == 'sel':
@@ -160,10 +170,12 @@ def callback_query(call):
         bot.edit_message_text(text=call.message.text + "\n\n**[СТАТУС: ОДОБРЕНО ✅]**", chat_id=call.message.chat.id, message_id=call.message.message_id, parse_mode='Markdown')
         
     elif action == 'reject':
-        target_user_id = int(parts[1])
-        bot.send_message(target_user_id, "⚠️ Ваша заявка отклонена модератором. Проверьте данные и попробуйте снова через /start.")
+        if target_type == 'des':
+            bot.send_message(target_user_id, "⚠️ Ваше резюме отклонено модератором.")
+        else:
+            bot.send_message(target_user_id, "⚠️ Ваш заказ отклонен модератором.")
         bot.edit_message_text(text=call.message.text + "\n\n**[СТАТУС: ОТКЛОНЕНО ❌]**", chat_id=call.message.chat.id, message_id=call.message.message_id, parse_mode='Markdown')
 
 if __name__ == '__main__':
-    print("Биржа фриланса запущенна...")
+    print("Биржа фриланса запущена...")
     bot.infinity_polling()
