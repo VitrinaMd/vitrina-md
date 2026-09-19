@@ -2108,6 +2108,7 @@ def channel_post_url(message_id):
         f"https://t.me/"
         f"{CHANNEL_USERNAME}/"
         f"{message_id}"
+        f"?comment={message_id}"
     )
 
 
