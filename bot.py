@@ -546,6 +546,26 @@ def init_db():
     """)
 
     cur.execute("""
+        CREATE TABLE IF NOT EXISTS growth_wallet (
+            user_id INTEGER PRIMARY KEY,
+            bump_credits INTEGER NOT NULL DEFAULT 0,
+            vip_credits INTEGER NOT NULL DEFAULT 0,
+            updated_at TEXT
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS referral_rewards (
+            referrer_user_id INTEGER NOT NULL,
+            milestone INTEGER NOT NULL,
+            reward_type TEXT NOT NULL,
+            reward_amount INTEGER NOT NULL DEFAULT 1,
+            created_at TEXT NOT NULL,
+            UNIQUE(referrer_user_id, milestone)
+        )
+    """)
+
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS listings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -1862,6 +1882,30 @@ def register_referral(invited_user_id, referrer_user_id):
             "UPDATE users SET referred_by = ? WHERE user_id = ? AND referred_by IS NULL",
             (referrer_user_id, invited_user_id)
         )
+        # Growth v2 rewards: one-time milestones.
+        count = conn.execute(
+            "SELECT COUNT(*) AS c FROM referrals WHERE referrer_user_id = ?",
+            (referrer_user_id,)
+        ).fetchone()["c"]
+        rewards = {3: ("bump", 1), 5: ("bump", 2), 10: ("vip", 1)}
+        if count in rewards:
+            reward_type, amount = rewards[count]
+            conn.execute(
+                "INSERT OR IGNORE INTO referral_rewards "
+                "(referrer_user_id, milestone, reward_type, reward_amount, created_at) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (referrer_user_id, count, reward_type, amount, current_time())
+            )
+            conn.execute(
+                "INSERT OR IGNORE INTO growth_wallet "
+                "(user_id, bump_credits, vip_credits, updated_at) VALUES (?, 0, 0, ?)",
+                (referrer_user_id, current_time())
+            )
+            column = "bump_credits" if reward_type == "bump" else "vip_credits"
+            conn.execute(
+                f"UPDATE growth_wallet SET {column} = {column} + ?, updated_at = ? WHERE user_id = ?",
+                (amount, current_time(), referrer_user_id)
+            )
         conn.commit()
         logger.info("Referral registered: %s -> %s", referrer_user_id, invited_user_id)
         return True
@@ -1883,11 +1927,22 @@ def send_referral_link(chat_id, user_id):
         return
     link = f"https://t.me/{BOT_USERNAME}?start=ref_{user_id}"
     count = referral_count(user_id)
+    conn = get_db()
+    wallet = conn.execute(
+        "SELECT bump_credits, vip_credits FROM growth_wallet WHERE user_id = ?",
+        (user_id,)
+    ).fetchone()
+    conn.close()
+    bumps = int(wallet["bump_credits"]) if wallet else 0
+    vips = int(wallet["vip_credits"]) if wallet else 0
     bot.send_message(
         chat_id,
         "👥 <b>Пригласить друзей</b>\n\n"
         f"Ваша персональная ссылка:\n{html.escape(link)}\n\n"
-        f"Приглашено: <b>{count}</b>\n\n"
+        f"Приглашено: <b>{count}</b>\n"
+        f"⬆️ Поднятий: <b>{bumps}</b>\n"
+        f"⭐ VIP-кредитов: <b>{vips}</b>\n\n"
+        "🎁 Награды: 3 друга = 1 поднятие, 5 = ещё 2 поднятия, 10 = 1 VIP.\n\n"
         "Отправьте ссылку знакомым, которым нужны работа, клиенты или специалисты."
     )
 
@@ -3044,33 +3099,88 @@ def invite_handler(message):
     send_referral_link(message.chat.id, message.from_user.id)
 
 
-@bot.message_handler(commands=["stats"])
-def stats_handler(message):
-    if message.from_user.id != ADMIN_ID:
-        return
+@bot.message_handler(commands=["mystats"])
+def my_stats_handler(message):
+    save_user(message.from_user)
+    user_id = message.from_user.id
+    conn = get_db()
+    ads = conn.execute("SELECT COUNT(*) AS c FROM listings WHERE user_id = ?", (user_id,)).fetchone()["c"]
+    published = conn.execute("SELECT COUNT(*) AS c FROM listings WHERE user_id = ? AND status='approved'", (user_id,)).fetchone()["c"]
+    wallet = conn.execute("SELECT bump_credits, vip_credits FROM growth_wallet WHERE user_id = ?", (user_id,)).fetchone()
+    conn.close()
+    bumps = int(wallet["bump_credits"]) if wallet else 0
+    vips = int(wallet["vip_credits"]) if wallet else 0
+    bot.send_message(message.chat.id,
+        "📊 <b>Моя статистика</b>\n\n"
+        f"👥 Приглашено друзей: <b>{referral_count(user_id)}</b>\n"
+        f"📝 Моих объявлений: <b>{ads}</b>\n"
+        f"✅ Опубликовано: <b>{published}</b>\n"
+        f"⬆️ Поднятий: <b>{bumps}</b>\n"
+        f"⭐ VIP-кредитов: <b>{vips}</b>"
+    )
+
+
+def send_admin_stats(chat_id):
     conn = get_db()
     total_users = conn.execute("SELECT COUNT(*) AS c FROM users").fetchone()["c"]
-    users_7d = conn.execute(
-        "SELECT COUNT(*) AS c FROM users WHERE datetime(created_at) >= datetime('now', '-7 days')"
-    ).fetchone()["c"]
+    users_7d = conn.execute("SELECT COUNT(*) AS c FROM users WHERE datetime(created_at) >= datetime('now', '-7 days')").fetchone()["c"]
     total_listings = conn.execute("SELECT COUNT(*) AS c FROM listings").fetchone()["c"]
-    published = conn.execute("SELECT COUNT(*) AS c FROM listings WHERE status = 'approved'").fetchone()["c"]
+    pending = conn.execute("SELECT COUNT(*) AS c FROM listings WHERE status='pending'").fetchone()["c"]
+    published = conn.execute("SELECT COUNT(*) AS c FROM listings WHERE status='approved'").fetchone()["c"]
     referrals = conn.execute("SELECT COUNT(*) AS c FROM referrals").fetchone()["c"]
-    top = conn.execute(
-        "SELECT category, COUNT(*) AS c FROM listings WHERE status='approved' GROUP BY category ORDER BY c DESC LIMIT 3"
-    ).fetchall()
+    top = conn.execute("SELECT category, COUNT(*) AS c FROM listings WHERE status='approved' GROUP BY category ORDER BY c DESC LIMIT 3").fetchall()
     conn.close()
     top_text = ", ".join(f"{category_label(r['category'])}: {r['c']}" for r in top) or "пока нет данных"
-    bot.send_message(
-        message.chat.id,
+    bot.send_message(chat_id,
         "📊 <b>Vitrina — статистика</b>\n\n"
         f"👥 Пользователей: <b>{total_users}</b>\n"
         f"🆕 Новых за 7 дней: <b>{users_7d}</b>\n"
         f"📝 Объявлений всего: <b>{total_listings}</b>\n"
+        f"⏳ На модерации: <b>{pending}</b>\n"
         f"✅ Опубликовано: <b>{published}</b>\n"
         f"🔗 Приглашений: <b>{referrals}</b>\n\n"
         f"🔥 Популярные категории: {top_text}"
     )
+
+
+@bot.message_handler(commands=["stats"])
+def stats_handler(message):
+    if message.from_user.id != ADMIN_ID:
+        return
+    send_admin_stats(message.chat.id)
+
+
+@bot.message_handler(commands=["admin"])
+def admin_panel_handler(message):
+    if message.from_user.id != ADMIN_ID:
+        return
+    markup = types.InlineKeyboardMarkup()
+    markup.row(
+        types.InlineKeyboardButton("📊 Статистика", callback_data="growth_admin:stats"),
+        types.InlineKeyboardButton("⏳ Модерация", callback_data="growth_admin:pending")
+    )
+    bot.send_message(message.chat.id, "🛠 <b>Админ-панель Vitrina</b>", reply_markup=markup)
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("growth_admin:"))
+def growth_admin_callback(call):
+    if call.from_user.id != ADMIN_ID:
+        bot.answer_callback_query(call.id, "Нет доступа")
+        return
+    action = call.data.split(":", 1)[1]
+    bot.answer_callback_query(call.id)
+    if action == "stats":
+        send_admin_stats(call.message.chat.id)
+    elif action == "pending":
+        conn = get_db()
+        rows = conn.execute("SELECT id FROM listings WHERE status='pending' ORDER BY id ASC LIMIT 20").fetchall()
+        conn.close()
+        if not rows:
+            bot.send_message(call.message.chat.id, "✅ Нет объявлений на модерации.")
+            return
+        bot.send_message(call.message.chat.id, f"⏳ На модерации: <b>{len(rows)}</b> (показаны первые 20)")
+        for row in rows:
+            send_moderation(row["id"])
 
 
 # ============================================================
