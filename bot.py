@@ -1,763 +1,2512 @@
 import os
-import sqlite3
 import html
-import time
-import telebot
+import sqlite3
+import logging
+from datetime import datetime
 
+import telebot
 from telebot import types
 
 
-# =========================================================
+# ============================================================
 # НАСТРОЙКИ
-# =========================================================
+# ============================================================
 
-BOT_TOKEN = "8724559334:AAGGHuWXx2wjrWTYbvLTSUbJRsFGbaFwF3g"
+BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 
-# Твой Telegram ID администратора
-ADMIN_ID = 7419021481
+ADMIN_ID = int(os.getenv("ADMIN_ID", "7419021481"))
 
-# Пока оставляем пустым.
-# После получения ID группы вставим его сюда.
-GROUP_ID = None
+GROUP_ID_RAW = os.getenv("GROUP_ID", "").strip()
+GROUP_ID = int(GROUP_ID_RAW) if GROUP_ID_RAW else None
 
-DB_NAME = "vitrina.db"
+SUPPORT_USERNAME = os.getenv("SUPPORT_USERNAME", "").strip().lstrip("@")
+BOT_USERNAME = os.getenv("BOT_USERNAME", "").strip().lstrip("@")
 
-
-bot = telebot.TeleBot(BOT_TOKEN)
+DB_PATH = os.getenv("DB_PATH", "vitrina.db")
 
 
-# =========================================================
-# БАЗА ДАННЫХ
-# =========================================================
-
-def init_database():
-
-    conn = sqlite3.connect(DB_NAME)
-
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS applications (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            first_name TEXT,
-            username TEXT,
-            text TEXT NOT NULL,
-            status TEXT DEFAULT 'pending',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-
-    conn.commit()
-    conn.close()
-
-
-# =========================================================
-# СОХРАНЕНИЕ ЗАЯВКИ
-# =========================================================
-
-def create_application(user, text):
-
-    conn = sqlite3.connect(DB_NAME)
-
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        INSERT INTO applications
-        (user_id, first_name, username, text, status)
-        VALUES (?, ?, ?, ?, 'pending')
-    """, (
-        user.id,
-        user.first_name or "",
-        user.username or "",
-        text
-    ))
-
-    application_id = cursor.lastrowid
-
-    conn.commit()
-    conn.close()
-
-    return application_id
-
-
-# =========================================================
-# ПОЛУЧЕНИЕ ЗАЯВКИ
-# =========================================================
-
-def get_application(application_id):
-
-    conn = sqlite3.connect(DB_NAME)
-
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT
-            id,
-            user_id,
-            first_name,
-            username,
-            text,
-            status
-        FROM applications
-        WHERE id = ?
-    """, (application_id,))
-
-    result = cursor.fetchone()
-
-    conn.close()
-
-    return result
-
-
-# =========================================================
-# ИЗМЕНЕНИЕ СТАТУСА
-# =========================================================
-
-def update_application_status(application_id, status):
-
-    conn = sqlite3.connect(DB_NAME)
-
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        UPDATE applications
-        SET status = ?
-        WHERE id = ?
-    """, (
-        status,
-        application_id
-    ))
-
-    conn.commit()
-    conn.close()
-
-
-# =========================================================
-# ГЛАВНОЕ МЕНЮ
-# =========================================================
-
-def send_main_menu(chat_id):
-
-    markup = types.ReplyKeyboardMarkup(
-        resize_keyboard=True
+if not BOT_TOKEN:
+    raise RuntimeError(
+        "BOT_TOKEN не установлен в Environment Variables Render."
     )
 
-    markup.add(
-        types.KeyboardButton(
-            "📝 Разместить заказ / резюме"
+
+# ============================================================
+# ЛОГИ
+# ============================================================
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s"
+)
+
+logger = logging.getLogger(__name__)
+
+
+# ============================================================
+# TELEGRAM BOT
+# ============================================================
+
+bot = telebot.TeleBot(
+    BOT_TOKEN,
+    parse_mode="HTML"
+)
+
+
+# ============================================================
+# ВРЕМЕННЫЕ СОСТОЯНИЯ ФОРМ
+# ============================================================
+
+states = {}
+
+
+# ============================================================
+# ТЕКСТЫ RU / RO
+# ============================================================
+
+TEXT = {
+
+    "ru": {
+
+        "welcome":
+            "👋 <b>Добро пожаловать в Vitrina Freelance MD!</b>\n\n"
+            "Здесь заказчики находят специалистов, "
+            "а фрилансеры — новые заказы.",
+
+        "choose": "Выберите действие:",
+
+        "order": "📝 Разместить заказ",
+        "service": "👨‍💻 Предложить свои услуги",
+        "find": "🔎 Найти",
+        "orders": "🔎 Найти заказ",
+        "services": "👨‍💻 Найти услуги",
+        "mine": "📋 Мои объявления",
+        "about": "ℹ️ О проекте",
+        "support": "🆘 Поддержка",
+        "language": "🌐 Язык / Limba",
+
+        "back": "⬅️ Назад",
+        "cancel": "❌ Отмена",
+
+        "saved":
+            "✅ Объявление отправлено на модерацию.\n\n"
+            "После проверки администратора оно будет опубликовано.",
+
+        "rejected":
+            "❌ Ваше объявление было отклонено модератором.",
+
+        "approved":
+            "✅ Ваше объявление одобрено и опубликовано.",
+
+        "need_title":
+            "Введите <b>название</b> объявления:",
+
+        "need_category":
+            "Выберите <b>категорию</b>:",
+
+        "need_budget":
+            "Укажите <b>бюджет</b>.\n\n"
+            "Например:\n"
+            "• 500 €\n"
+            "• 1000–1500 MDL\n"
+            "• По договорённости",
+
+        "need_price":
+            "Укажите <b>цену</b>.\n\n"
+            "Например:\n"
+            "• От 200 €\n"
+            "• 500 MDL/час\n"
+            "• По договорённости",
+
+        "need_city":
+            "Укажите <b>город</b> или напишите <b>Удалённо</b>:",
+
+        "need_deadline":
+            "Укажите <b>срок выполнения</b> или напишите "
+            "«не установлен»:",
+
+        "need_description":
+            "Опишите задачу или свои услуги как можно подробнее:",
+
+        "need_experience":
+            "Напишите о своём <b>опыте</b>:",
+
+        "need_portfolio":
+            "Отправьте <b>ссылку на портфолио</b> или его описание.\n\n"
+            "Можно также отправить одну фотографию.\n\n"
+            "Если портфолио нет — напишите «нет».",
+
+        "need_contact":
+            "Укажите, как с вами связаться.\n\n"
+            "Например: @username или номер телефона.\n\n"
+            "Если у вас есть Telegram username, его можно указать.",
+
+        "preview":
+            "🔎 <b>Проверьте объявление</b>\n\n",
+
+        "send":
+            "📤 Отправить на модерацию",
+
+        "edit":
+            "✏️ Изменить",
+
+        "published":
+            "📢 Объявление опубликовано в группе.",
+
+        "empty":
+            "Пока здесь ничего нет.",
+
+        "about_text":
+            "<b>Vitrina Freelance MD</b> — площадка для заказчиков "
+            "и специалистов.\n\n"
+            "Заказчики могут размещать задачи, "
+            "а фрилансеры — предлагать свои услуги.\n\n"
+            "Все объявления проходят модерацию перед публикацией "
+            "в Telegram-группе.",
+
+        "support_text":
+            "Если нужна помощь, напишите администратору проекта.",
+
+        "choose_language":
+            "Выберите язык:",
+
+        "no_results":
+            "По вашему запросу ничего не найдено.",
+
+        "ask_search":
+            "Введите слово для поиска.\n\n"
+            "Например: дизайн, ремонт, перевод, программист "
+            "или название города.\n\n"
+            "Или нажмите «Все».",
+
+        "all":
+            "📋 Все",
+
+        "my_title":
+            "📋 <b>Ваши объявления</b>",
+
+        "invalid":
+            "Пожалуйста, введите текст или используйте кнопку.",
+
+    },
+
+
+    "ro": {
+
+        "welcome":
+            "👋 <b>Bine ai venit pe Vitrina Freelance MD!</b>\n\n"
+            "Aici clienții găsesc specialiști, "
+            "iar freelancerii găsesc proiecte noi.",
+
+        "choose": "Alege o acțiune:",
+
+        "order": "📝 Publică o comandă",
+        "service": "👨‍💻 Oferă servicii",
+        "find": "🔎 Caută",
+        "orders": "🔎 Caută comenzi",
+        "services": "👨‍💻 Caută servicii",
+        "mine": "📋 Anunțurile mele",
+        "about": "ℹ️ Despre proiect",
+        "support": "🆘 Suport",
+        "language": "🌐 Limbă / Язык",
+
+        "back": "⬅️ Înapoi",
+        "cancel": "❌ Anulează",
+
+        "saved":
+            "✅ Anunțul a fost trimis pentru moderare.\n\n"
+            "După verificare, acesta va fi publicat.",
+
+        "rejected":
+            "❌ Anunțul tău a fost respins de moderator.",
+
+        "approved":
+            "✅ Anunțul tău a fost aprobat și publicat.",
+
+        "need_title":
+            "Introdu <b>titlul</b> anunțului:",
+
+        "need_category":
+            "Alege <b>categoria</b>:",
+
+        "need_budget":
+            "Indică <b>bugetul</b>.\n\n"
+            "De exemplu:\n"
+            "• 500 €\n"
+            "• 1000–1500 MDL\n"
+            "• Negociabil",
+
+        "need_price":
+            "Indică <b>prețul</b>.\n\n"
+            "De exemplu:\n"
+            "• De la 200 €\n"
+            "• 500 MDL/oră\n"
+            "• Negociabil",
+
+        "need_city":
+            "Indică <b>orașul</b> sau scrie <b>La distanță</b>:",
+
+        "need_deadline":
+            "Indică <b>termenul</b> sau scrie "
+            "„nu este stabilit”:",
+
+        "need_description":
+            "Descrie proiectul sau serviciile tale cât mai detaliat:",
+
+        "need_experience":
+            "Scrie despre <b>experiența</b> ta:",
+
+        "need_portfolio":
+            "Trimite <b>linkul portofoliului</b> sau o descriere.\n\n"
+            "Poți trimite și o fotografie.\n\n"
+            "Dacă nu ai portofoliu — scrie „nu”.",
+
+        "need_contact":
+            "Indică modul de contact.\n\n"
+            "De exemplu: @username sau număr de telefon.",
+
+        "preview":
+            "🔎 <b>Verifică anunțul</b>\n\n",
+
+        "send":
+            "📤 Trimite pentru moderare",
+
+        "edit":
+            "✏️ Modifică",
+
+        "published":
+            "📢 Anunțul a fost publicat în grup.",
+
+        "empty":
+            "Încă nu există anunțuri aici.",
+
+        "about_text":
+            "<b>Vitrina Freelance MD</b> este o platformă "
+            "pentru clienți și specialiști.\n\n"
+            "Clienții pot publica proiecte, "
+            "iar freelancerii își pot oferi serviciile.\n\n"
+            "Toate anunțurile sunt moderate înainte de publicarea "
+            "în grupul Telegram.",
+
+        "support_text":
+            "Dacă ai nevoie de ajutor, contactează administratorul proiectului.",
+
+        "choose_language":
+            "Alege limba:",
+
+        "no_results":
+            "Nu au fost găsite rezultate.",
+
+        "ask_search":
+            "Introdu un cuvânt pentru căutare.\n\n"
+            "De exemplu: design, reparații, traduceri, programator "
+            "sau un oraș.\n\n"
+            "Sau apasă „Toate”.",
+
+        "all":
+            "📋 Toate",
+
+        "my_title":
+            "📋 <b>Anunțurile tale</b>",
+
+        "invalid":
+            "Te rugăm să introduci text sau să folosești butonul.",
+
+    }
+}
+
+
+# ============================================================
+# КАТЕГОРИИ
+# ============================================================
+
+CATEGORIES = [
+
+    ("design", "🎨 Дизайн / Design"),
+    ("programming", "💻 IT / Programare"),
+    ("marketing", "📣 Маркетинг / Marketing"),
+    ("photo_video", "📷 Фото / Video"),
+    ("text", "✍️ Тексты / Texte"),
+    ("translation", "🌍 Переводы / Traduceri"),
+    ("construction", "🔨 Ремонт / Construcții"),
+    ("transport", "🚚 Транспорт / Transport"),
+    ("beauty", "💇 Красота / Frumusețe"),
+    ("other", "📦 Другое / Altele"),
+
+]
+
+
+# ============================================================
+# DATABASE
+# ============================================================
+
+def get_db():
+
+    conn = sqlite3.connect(DB_PATH)
+
+    conn.row_factory = sqlite3.Row
+
+    return conn
+
+
+def init_db():
+
+    with get_db() as conn:
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+
+                user_id INTEGER PRIMARY KEY,
+
+                first_name TEXT NOT NULL,
+
+                username TEXT,
+
+                language TEXT NOT NULL DEFAULT 'ru',
+
+                created_at TEXT NOT NULL
+
+            )
+        """)
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS listings (
+
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+                user_id INTEGER NOT NULL,
+
+                kind TEXT NOT NULL,
+
+                title TEXT NOT NULL,
+
+                category TEXT NOT NULL,
+
+                budget TEXT,
+
+                city TEXT,
+
+                deadline TEXT,
+
+                description TEXT NOT NULL,
+
+                experience TEXT,
+
+                portfolio TEXT,
+
+                photo_id TEXT,
+
+                contact TEXT,
+
+                status TEXT NOT NULL DEFAULT 'pending',
+
+                created_at TEXT NOT NULL,
+
+                published_message_id INTEGER
+
+            )
+        """)
+
+        conn.commit()
+
+
+def current_time():
+
+    return datetime.utcnow().strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
+
+
+# ============================================================
+# ПОЛЬЗОВАТЕЛЬ
+# ============================================================
+
+def detect_language(user):
+
+    lang = (user.language_code or "").lower()
+
+    if lang.startswith("ro"):
+        return "ro"
+
+    if lang.startswith("ru"):
+        return "ru"
+
+    return "ru"
+
+
+def save_user(user):
+
+    language = detect_language(user)
+
+    with get_db() as conn:
+
+        conn.execute("""
+            INSERT INTO users
+            (
+                user_id,
+                first_name,
+                username,
+                language,
+                created_at
+            )
+            VALUES (?, ?, ?, ?, ?)
+
+            ON CONFLICT(user_id)
+
+            DO UPDATE SET
+                first_name = excluded.first_name,
+                username = excluded.username
+        """, (
+
+            user.id,
+            user.first_name or "",
+            user.username,
+            language,
+            current_time()
+
+        ))
+
+        conn.commit()
+
+
+def get_language(user_id):
+
+    with get_db() as conn:
+
+        row = conn.execute(
+            "SELECT language FROM users WHERE user_id=?",
+            (user_id,)
+        ).fetchone()
+
+    if row:
+        return row["language"]
+
+    return "ru"
+
+
+def set_language(user_id, language):
+
+    if language not in ("ru", "ro"):
+        return
+
+    with get_db() as conn:
+
+        conn.execute(
+            "UPDATE users SET language=? WHERE user_id=?",
+            (language, user_id)
+        )
+
+        conn.commit()
+
+
+def tr(user_id, key):
+
+    language = get_language(user_id)
+
+    return TEXT[language].get(
+        key,
+        TEXT["ru"].get(key, key)
+    )
+
+
+# ============================================================
+# ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+# ============================================================
+
+def escape(value):
+
+    return html.escape(
+        str(value or "")
+    )
+
+
+def main_menu(user_id):
+
+    keyboard = types.ReplyKeyboardMarkup(
+        resize_keyboard=True,
+        row_width=2
+    )
+
+    keyboard.add(
+        types.KeyboardButton(tr(user_id, "order")),
+        types.KeyboardButton(tr(user_id, "service"))
+    )
+
+    keyboard.add(
+        types.KeyboardButton(tr(user_id, "find")),
+        types.KeyboardButton(tr(user_id, "mine"))
+    )
+
+    keyboard.add(
+        types.KeyboardButton(tr(user_id, "about")),
+        types.KeyboardButton(tr(user_id, "support"))
+    )
+
+    keyboard.add(
+        types.KeyboardButton(tr(user_id, "language"))
+    )
+
+    return keyboard
+
+
+def cancel_keyboard(user_id):
+
+    keyboard = types.InlineKeyboardMarkup()
+
+    keyboard.add(
+        types.InlineKeyboardButton(
+            tr(user_id, "cancel"),
+            callback_data="cancel_form"
         )
     )
+
+    return keyboard
+
+
+def category_keyboard(kind):
+
+    keyboard = types.InlineKeyboardMarkup(
+        row_width=2
+    )
+
+    prefix = "order" if kind == "order" else "service"
+
+    for key, title in CATEGORIES:
+
+        keyboard.add(
+            types.InlineKeyboardButton(
+                title,
+                callback_data=f"{prefix}_category:{key}"
+            )
+        )
+
+    return keyboard
+
+
+def find_keyboard(user_id):
+
+    keyboard = types.InlineKeyboardMarkup(
+        row_width=1
+    )
+
+    keyboard.add(
+        types.InlineKeyboardButton(
+            tr(user_id, "orders"),
+            callback_data="find_orders"
+        )
+    )
+
+    keyboard.add(
+        types.InlineKeyboardButton(
+            tr(user_id, "services"),
+            callback_data="find_services"
+        )
+    )
+
+    return keyboard
+
+
+# ============================================================
+# ФОРМА
+# ============================================================
+
+def start_form(chat_id, user_id, kind):
+
+    states[user_id] = {
+
+        "step": "title",
+
+        "data": {
+            "kind": kind
+        }
+
+    }
 
     bot.send_message(
         chat_id,
-        "Главное меню 👇",
-        reply_markup=markup
+        tr(user_id, "need_title"),
+        reply_markup=cancel_keyboard(user_id)
     )
 
 
-# =========================================================
-# /START
-# =========================================================
+def preview_text(data):
+
+    kind_text = (
+        "📝 Заказ"
+        if data["kind"] == "order"
+        else
+        "👨‍💻 Услуга"
+    )
+
+    result = [
+
+        f"<b>{escape(data['title'])}</b>",
+
+        f"📌 Тип: {kind_text}",
+
+        f"🏷 Категория: "
+        f"{escape(data.get('category_label'))}"
+
+    ]
+
+    if data.get("budget"):
+
+        result.append(
+            f"💰 "
+            f"{'Бюджет' if data['kind'] == 'order' else 'Цена'}: "
+            f"{escape(data['budget'])}"
+        )
+
+    if data.get("city"):
+
+        result.append(
+            f"📍 {escape(data['city'])}"
+        )
+
+    if data.get("deadline"):
+
+        result.append(
+            f"📅 Срок: {escape(data['deadline'])}"
+        )
+
+    if data.get("experience"):
+
+        result.append(
+            f"⭐ Опыт: {escape(data['experience'])}"
+        )
+
+    result.append(
+        f"\n📝 {escape(data['description'])}"
+    )
+
+    if data.get("portfolio"):
+
+        result.append(
+            f"\n🔗 Портфолио: "
+            f"{escape(data['portfolio'])}"
+        )
+
+    if data.get("contact"):
+
+        result.append(
+            f"\n📞 Контакт: "
+            f"{escape(data['contact'])}"
+        )
+
+    return "\n".join(result)
+
+
+def preview_keyboard(user_id):
+
+    keyboard = types.InlineKeyboardMarkup(
+        row_width=1
+    )
+
+    keyboard.add(
+        types.InlineKeyboardButton(
+            tr(user_id, "send"),
+            callback_data="submit_form"
+        )
+    )
+
+    keyboard.add(
+        types.InlineKeyboardButton(
+            tr(user_id, "edit"),
+            callback_data="edit_form"
+        )
+    )
+
+    keyboard.add(
+        types.InlineKeyboardButton(
+            tr(user_id, "cancel"),
+            callback_data="cancel_form"
+        )
+    )
+
+    return keyboard
+
+
+def show_preview(chat_id, user_id):
+
+    data = states[user_id]["data"]
+
+    bot.send_message(
+        chat_id,
+        tr(user_id, "preview")
+        + preview_text(data),
+        reply_markup=preview_keyboard(user_id)
+    )
+
+
+# ============================================================
+# START
+# ============================================================
 
 @bot.message_handler(commands=["start"])
 def start_command(message):
 
-    markup = types.ReplyKeyboardMarkup(
-        resize_keyboard=True
-    )
-
-    markup.add(
-        types.KeyboardButton(
-            "📝 Разместить заказ / резюме"
-        )
-    )
-
-    bot.send_message(
-        message.chat.id,
-        "👋 <b>Привет!</b>\n\n"
-        "Добро пожаловать в <b>Vitrina.md</b> — "
-        "маркетплейс фриланса.\n\n"
-        "Здесь можно разместить заказ "
-        "или предложить свои услуги.\n\n"
-        "Нажми кнопку ниже 👇",
-        parse_mode="HTML",
-        reply_markup=markup
-    )
-
-
-# =========================================================
-# ПОЛУЧЕНИЕ ID ГРУППЫ
-# =========================================================
-
-@bot.message_handler(commands=["id"])
-def get_group_id(message):
-
-    bot.send_message(
-        message.chat.id,
-        f"🆔 ID этого чата:\n{message.chat.id}"
-    )
-
-
-# =========================================================
-# НАЧАЛО СОЗДАНИЯ ОБЪЯВЛЕНИЯ
-# =========================================================
-
-@bot.message_handler(
-    func=lambda message:
-    message.text == "📝 Разместить заказ / резюме"
-)
-def start_application(message):
-
-    markup = types.ReplyKeyboardMarkup(
-        resize_keyboard=True
-    )
-
-    markup.add(
-        types.KeyboardButton("❌ Отмена")
-    )
-
-    msg = bot.send_message(
-        message.chat.id,
-        "📝 <b>Создание объявления</b>\n\n"
-        "Напиши подробно, что тебе нужно сделать "
-        "или какие услуги ты предлагаешь.\n\n"
-        "Например:\n"
-        "• Нужно сделать сайт\n"
-        "• Ищу электрика\n"
-        "• Предлагаю услуги дизайнера\n\n"
-        "Отправь описание одним сообщением.",
-        parse_mode="HTML",
-        reply_markup=markup
-    )
-
-    bot.register_next_step_handler(
-        msg,
-        process_description
-    )
-
-
-# =========================================================
-# ВРЕМЕННЫЕ ДАННЫЕ
-# =========================================================
-
-temporary_data = {}
-
-
-# =========================================================
-# ОБРАБОТКА ОПИСАНИЯ
-# =========================================================
-
-def process_description(message):
+    save_user(message.from_user)
 
     user_id = message.from_user.id
 
-    if message.text == "❌ Отмена":
-
-        temporary_data.pop(user_id, None)
-
-        send_main_menu(
-            message.chat.id
-        )
-
-        return
-
-    text = message.text.strip() if message.text else ""
-
-    if not text:
-
-        msg = bot.send_message(
-            message.chat.id,
-            "❌ Объявление не может быть пустым.\n\n"
-            "Напиши описание ещё раз."
-        )
-
-        bot.register_next_step_handler(
-            msg,
-            process_description
-        )
-
-        return
-
-    if len(text) > 3500:
-
-        msg = bot.send_message(
-            message.chat.id,
-            "❌ Текст слишком длинный.\n\n"
-            "Максимальная длина — 3500 символов."
-        )
-
-        bot.register_next_step_handler(
-            msg,
-            process_description
-        )
-
-        return
-
-    temporary_data[user_id] = text
-
-    safe_text = html.escape(text)
-
-    markup = types.InlineKeyboardMarkup(
-        row_width=2
+    parts = message.text.split(
+        maxsplit=1
     )
 
-    markup.add(
-        types.InlineKeyboardButton(
-            "✅ Отправить",
-            callback_data="confirm"
-        ),
-        types.InlineKeyboardButton(
-            "✏️ Изменить",
-            callback_data="edit"
-        ),
-        types.InlineKeyboardButton(
-            "❌ Отмена",
-            callback_data="cancel"
-        )
+    argument = (
+        parts[1]
+        if len(parts) > 1
+        else ""
     )
 
-    bot.send_message(
-        message.chat.id,
-        "👀 <b>Предпросмотр объявления:</b>\n\n"
-        f"{safe_text}\n\n"
-        "Всё правильно?",
-        parse_mode="HTML",
-        reply_markup=markup
-    )
-
-
-# =========================================================
-# КНОПКИ ПОЛЬЗОВАТЕЛЯ
-# =========================================================
-
-@bot.callback_query_handler(
-    func=lambda call:
-    call.data in [
-        "confirm",
-        "edit",
-        "cancel"
-    ]
-)
-def user_callback(call):
-
-    user_id = call.from_user.id
-
-    # -----------------------------------------------------
-    # ОТМЕНА
-    # -----------------------------------------------------
-
-    if call.data == "cancel":
-
-        temporary_data.pop(
-            user_id,
-            None
-        )
-
-        bot.edit_message_text(
-            "❌ <b>Создание объявления отменено.</b>",
-            call.message.chat.id,
-            call.message.message_id,
-            parse_mode="HTML"
-        )
-
-        bot.answer_callback_query(
-            call.id
-        )
-
-        send_main_menu(
-            call.message.chat.id
-        )
-
-        return
-
-    # -----------------------------------------------------
-    # ИЗМЕНЕНИЕ
-    # -----------------------------------------------------
-
-    if call.data == "edit":
-
-        if user_id not in temporary_data:
-
-            bot.answer_callback_query(
-                call.id,
-                "Сессия устарела. Начни заново через /start",
-                show_alert=True
-            )
-
-            return
-
-        msg = bot.send_message(
-            call.message.chat.id,
-            "✏️ Отправь исправленный текст объявления:"
-        )
-
-        bot.register_next_step_handler(
-            msg,
-            process_description
-        )
-
-        bot.answer_callback_query(
-            call.id
-        )
-
-        return
-
-    # -----------------------------------------------------
-    # ОТПРАВКА
-    # -----------------------------------------------------
-
-    if call.data == "confirm":
-
-        text = temporary_data.get(
-            user_id
-        )
-
-        if not text:
-
-            bot.answer_callback_query(
-                call.id,
-                "Сессия устарела. Начни заново через /start",
-                show_alert=True
-            )
-
-            return
-
-        application_id = create_application(
-            call.from_user,
-            text
-        )
-
-        sent = send_application_to_admin(
-            application_id
-        )
-
-        if sent:
-
-            bot.edit_message_text(
-                f"✅ <b>Заявка №{application_id} "
-                f"отправлена администратору!</b>\n\n"
-                "После проверки она может быть опубликована.",
-                call.message.chat.id,
-                call.message.message_id,
-                parse_mode="HTML"
-            )
-
-        else:
-
-            update_application_status(
-                application_id,
-                "send_error"
-            )
-
-            bot.edit_message_text(
-                "⚠️ Не удалось отправить заявку "
-                "администратору.\n\n"
-                "Попробуй ещё раз через /start.",
-                call.message.chat.id,
-                call.message.message_id
-            )
-
-        temporary_data.pop(
-            user_id,
-            None
-        )
-
-        bot.answer_callback_query(
-            call.id
-        )
-
-
-# =========================================================
-# ОТПРАВКА ЗАЯВКИ АДМИНИСТРАТОРУ
-# =========================================================
-
-def send_application_to_admin(
-    application_id
-):
-
-    application = get_application(
-        application_id
-    )
-
-    if not application:
-
-        return False
-
-    (
-        app_id,
-        user_id,
-        first_name,
-        username,
-        text,
-        status
-    ) = application
-
-    username_text = (
-        f"@{username}"
-        if username
-        else f"ID: {user_id}"
-    )
-
-    safe_first_name = html.escape(
-        first_name
-    )
-
-    safe_username = html.escape(
-        username_text
-    )
-
-    safe_text = html.escape(
-        text
-    )
-
-    admin_text = (
-        f"🚨 <b>Новая заявка №{app_id}</b>\n\n"
-        f"👤 <b>Пользователь:</b> "
-        f"{safe_first_name}\n"
-        f"🔗 <b>Контакт:</b> "
-        f"{safe_username}\n"
-        f"🆔 <b>ID:</b> {user_id}\n\n"
-        f"📝 <b>Объявление:</b>\n"
-        f"{safe_text}\n\n"
-        f"🟡 <b>Статус:</b> На модерации"
-    )
-
-    markup = types.InlineKeyboardMarkup(
-        row_width=2
-    )
-
-    markup.add(
-        types.InlineKeyboardButton(
-            "✅ Опубликовать",
-            callback_data=f"approve:{app_id}"
-        ),
-        types.InlineKeyboardButton(
-            "❌ Отклонить",
-            callback_data=f"reject:{app_id}"
-        )
-    )
-
-    for attempt in range(3):
+    # Контакт через бота
+    if argument.startswith("contact_"):
 
         try:
 
-            bot.send_message(
-                ADMIN_ID,
-                admin_text,
-                parse_mode="HTML",
-                reply_markup=markup
+            listing_id = int(
+                argument.replace(
+                    "contact_",
+                    "",
+                    1
+                )
             )
 
-            return True
+        except ValueError:
 
-        except Exception as e:
+            listing_id = None
 
-            print(
-                f"Ошибка отправки админу "
-                f"(попытка {attempt + 1}): {e}"
+        if listing_id:
+
+            with get_db() as conn:
+
+                listing = conn.execute("""
+                    SELECT
+                        listings.*,
+                        users.username,
+                        users.first_name
+                    FROM listings
+                    JOIN users
+                        ON users.user_id = listings.user_id
+                    WHERE listings.id=?
+                """, (listing_id,)).fetchone()
+
+            if listing and listing["user_id"] != user_id:
+
+                requester = (
+                    f"@{message.from_user.username}"
+                    if message.from_user.username
+                    else
+                    message.from_user.first_name
+                )
+
+                try:
+
+                    bot.send_message(
+                        listing["user_id"],
+                        "💬 <b>Новый запрос на связь</b>\n\n"
+                        f"Объявление: #{listing_id}\n"
+                        f"От: {escape(requester)}\n\n"
+                        "Вы можете открыть профиль пользователя "
+                        "в Telegram и связаться с ним."
+                    )
+
+                    bot.send_message(
+                        message.chat.id,
+                        "✅ Запрос на связь отправлен автору.",
+                        reply_markup=main_menu(user_id)
+                    )
+
+                    return
+
+                except Exception:
+
+                    logger.exception(
+                        "Contact notification failed"
+                    )
+
+    bot.send_message(
+
+        message.chat.id,
+
+        tr(user_id, "welcome")
+        + "\n\n"
+        + tr(user_id, "choose"),
+
+        reply_markup=main_menu(user_id)
+
+    )
+
+
+# ============================================================
+# ID ГРУППЫ
+# ============================================================
+
+@bot.message_handler(commands=["id"])
+def group_id_command(message):
+
+    bot.send_message(
+        message.chat.id,
+        "🆔 ID этого чата:\n\n"
+        f"<code>{message.chat.id}</code>"
+    )
+
+
+# ============================================================
+# MENU
+# ============================================================
+
+@bot.message_handler(
+    func=lambda message:
+        message.text in [
+
+            TEXT["ru"]["order"],
+            TEXT["ro"]["order"],
+
+            TEXT["ru"]["service"],
+            TEXT["ro"]["service"],
+
+            TEXT["ru"]["find"],
+            TEXT["ro"]["find"],
+
+            TEXT["ru"]["mine"],
+            TEXT["ro"]["mine"],
+
+            TEXT["ru"]["about"],
+            TEXT["ro"]["about"],
+
+            TEXT["ru"]["support"],
+            TEXT["ro"]["support"],
+
+            TEXT["ru"]["language"],
+            TEXT["ro"]["language"]
+
+        ]
+)
+def menu_handler(message):
+
+    save_user(message.from_user)
+
+    user_id = message.from_user.id
+
+    text = message.text
+
+    if text in (
+        TEXT["ru"]["order"],
+        TEXT["ro"]["order"]
+    ):
+
+        start_form(
+            message.chat.id,
+            user_id,
+            "order"
+        )
+
+        return
+
+    if text in (
+        TEXT["ru"]["service"],
+        TEXT["ro"]["service"]
+    ):
+
+        start_form(
+            message.chat.id,
+            user_id,
+            "service"
+        )
+
+        return
+
+    if text in (
+        TEXT["ru"]["find"],
+        TEXT["ro"]["find"]
+    ):
+
+        bot.send_message(
+            message.chat.id,
+            tr(user_id, "choose"),
+            reply_markup=find_keyboard(user_id)
+        )
+
+        return
+
+    if text in (
+        TEXT["ru"]["mine"],
+        TEXT["ro"]["mine"]
+    ):
+
+        show_my_listings(
+            message.chat.id,
+            user_id
+        )
+
+        return
+
+    if text in (
+        TEXT["ru"]["about"],
+        TEXT["ro"]["about"]
+    ):
+
+        bot.send_message(
+            message.chat.id,
+            tr(user_id, "about_text"),
+            reply_markup=main_menu(user_id)
+        )
+
+        return
+
+    if text in (
+        TEXT["ru"]["support"],
+        TEXT["ro"]["support"]
+    ):
+
+        support_text = tr(
+            user_id,
+            "support_text"
+        )
+
+        if SUPPORT_USERNAME:
+
+            support_text += (
+                f"\n\n👉 @{escape(SUPPORT_USERNAME)}"
             )
 
-            time.sleep(1)
+        bot.send_message(
+            message.chat.id,
+            support_text,
+            reply_markup=main_menu(user_id)
+        )
 
-    return False
+        return
+
+    if text in (
+        TEXT["ru"]["language"],
+        TEXT["ro"]["language"]
+    ):
+
+        keyboard = types.InlineKeyboardMarkup(
+            row_width=2
+        )
+
+        keyboard.add(
+
+            types.InlineKeyboardButton(
+                "🇷🇺 Русский",
+                callback_data="language:ru"
+            ),
+
+            types.InlineKeyboardButton(
+                "🇷🇴 Română",
+                callback_data="language:ro"
+            )
+
+        )
+
+        bot.send_message(
+            message.chat.id,
+            tr(user_id, "choose_language"),
+            reply_markup=keyboard
+        )
 
 
-# =========================================================
-# МОДЕРАЦИЯ АДМИНИСТРАТОРОМ
-# =========================================================
+# ============================================================
+# LANGUAGE
+# ============================================================
 
 @bot.callback_query_handler(
     func=lambda call:
-    call.data.startswith("approve:")
-    or call.data.startswith("reject:")
+        call.data.startswith("language:")
+)
+def language_callback(call):
+
+    language = call.data.split(
+        ":",
+        1
+    )[1]
+
+    set_language(
+        call.from_user.id,
+        language
+    )
+
+    bot.answer_callback_query(
+        call.id,
+        "OK"
+    )
+
+    user_id = call.from_user.id
+
+    bot.send_message(
+        call.message.chat.id,
+        tr(user_id, "welcome")
+        + "\n\n"
+        + tr(user_id, "choose"),
+        reply_markup=main_menu(user_id)
+    )
+
+
+# ============================================================
+# FIND
+# ============================================================
+
+@bot.callback_query_handler(
+    func=lambda call:
+        call.data in (
+            "find_orders",
+            "find_services"
+        )
+)
+def find_callback(call):
+
+    user_id = call.from_user.id
+
+    kind = (
+        "order"
+        if call.data == "find_orders"
+        else
+        "service"
+    )
+
+    states[user_id] = {
+
+        "step": "search",
+
+        "data": {
+            "kind": kind
+        }
+
+    }
+
+    keyboard = types.InlineKeyboardMarkup()
+
+    keyboard.add(
+        types.InlineKeyboardButton(
+            tr(user_id, "all"),
+            callback_data=f"search_all:{kind}"
+        )
+    )
+
+    bot.answer_callback_query(call.id)
+
+    bot.send_message(
+        call.message.chat.id,
+        tr(user_id, "ask_search"),
+        reply_markup=keyboard
+    )
+
+
+@bot.callback_query_handler(
+    func=lambda call:
+        call.data.startswith("search_all:")
+)
+def search_all_callback(call):
+
+    user_id = call.from_user.id
+
+    kind = call.data.split(
+        ":",
+        1
+    )[1]
+
+    states.pop(
+        user_id,
+        None
+    )
+
+    bot.answer_callback_query(
+        call.id
+    )
+
+    show_search_results(
+        call.message.chat.id,
+        user_id,
+        kind,
+        ""
+    )
+
+
+def show_search_results(
+    chat_id,
+    user_id,
+    kind,
+    query
+):
+
+    search = f"%{query.lower()}%"
+
+    with get_db() as conn:
+
+        if query:
+
+            rows = conn.execute("""
+                SELECT *
+                FROM listings
+
+                WHERE kind=?
+                AND status='approved'
+
+                AND (
+                    lower(title) LIKE ?
+                    OR lower(category) LIKE ?
+                    OR lower(description) LIKE ?
+                    OR lower(city) LIKE ?
+                )
+
+                ORDER BY id DESC
+
+                LIMIT 10
+
+            """, (
+                kind,
+                search,
+                search,
+                search,
+                search
+            )).fetchall()
+
+        else:
+
+            rows = conn.execute("""
+                SELECT *
+                FROM listings
+
+                WHERE kind=?
+                AND status='approved'
+
+                ORDER BY id DESC
+
+                LIMIT 10
+
+            """, (kind,)).fetchall()
+
+    if not rows:
+
+        bot.send_message(
+            chat_id,
+            tr(user_id, "no_results"),
+            reply_markup=main_menu(user_id)
+        )
+
+        return
+
+    for row in rows:
+
+        type_text = (
+            "📝 Заказ"
+            if kind == "order"
+            else
+            "👨‍💻 Услуга"
+        )
+
+        text = (
+            f"<b>{type_text}</b>\n\n"
+            f"<b>{escape(row['title'])}</b>\n"
+            f"🏷 {escape(row['category'])}\n"
+        )
+
+        if row["budget"]:
+
+            text += (
+                f"💰 {escape(row['budget'])}\n"
+            )
+
+        if row["city"]:
+
+            text += (
+                f"📍 {escape(row['city'])}\n"
+            )
+
+        text += (
+            "\n"
+            + escape(
+                row["description"][:900]
+            )
+        )
+
+        keyboard = None
+
+        with get_db() as conn:
+
+            author = conn.execute(
+                """
+                SELECT username
+                FROM users
+                WHERE user_id=?
+                """,
+                (row["user_id"],)
+            ).fetchone()
+
+        if author and author["username"]:
+
+            keyboard = types.InlineKeyboardMarkup()
+
+            keyboard.add(
+                types.InlineKeyboardButton(
+                    "💬 Связаться",
+                    url=(
+                        "https://t.me/"
+                        + author["username"]
+                    )
+                )
+            )
+
+        bot.send_message(
+            chat_id,
+            text,
+            reply_markup=keyboard
+        )
+
+    bot.send_message(
+        chat_id,
+        tr(user_id, "choose"),
+        reply_markup=main_menu(user_id)
+    )
+
+
+# ============================================================
+# MY LISTINGS
+# ============================================================
+
+def show_my_listings(
+    chat_id,
+    user_id
+):
+
+    with get_db() as conn:
+
+        rows = conn.execute("""
+            SELECT *
+            FROM listings
+            WHERE user_id=?
+            ORDER BY id DESC
+            LIMIT 20
+        """, (user_id,)).fetchall()
+
+    if not rows:
+
+        bot.send_message(
+            chat_id,
+            tr(user_id, "empty"),
+            reply_markup=main_menu(user_id)
+        )
+
+        return
+
+    status_names = {
+
+        "pending":
+            "🟡 На модерации",
+
+        "approved":
+            "🟢 Одобрено",
+
+        "rejected":
+            "🔴 Отклонено"
+
+    }
+
+    result = [
+        tr(user_id, "my_title")
+    ]
+
+    for row in rows:
+
+        status = status_names.get(
+            row["status"],
+            row["status"]
+        )
+
+        result.append(
+
+            f"\n#{row['id']} — "
+            f"<b>{escape(row['title'])}</b>\n"
+            f"{status}"
+
+        )
+
+    bot.send_message(
+        chat_id,
+        "\n".join(result),
+        reply_markup=main_menu(user_id)
+    )
+
+
+# ============================================================
+# CANCEL
+# ============================================================
+
+@bot.callback_query_handler(
+    func=lambda call:
+        call.data == "cancel_form"
+)
+def cancel_form(call):
+
+    user_id = call.from_user.id
+
+    states.pop(
+        user_id,
+        None
+    )
+
+    bot.answer_callback_query(
+        call.id
+    )
+
+    bot.send_message(
+        call.message.chat.id,
+        tr(user_id, "choose"),
+        reply_markup=main_menu(user_id)
+    )
+
+
+# ============================================================
+# EDIT FORM
+# ============================================================
+
+@bot.callback_query_handler(
+    func=lambda call:
+        call.data == "edit_form"
+)
+def edit_form(call):
+
+    user_id = call.from_user.id
+
+    if user_id not in states:
+
+        bot.answer_callback_query(
+            call.id,
+            "Форма уже закрыта.",
+            show_alert=True
+        )
+
+        return
+
+    states[user_id]["step"] = "title"
+
+    bot.answer_callback_query(
+        call.id
+    )
+
+    bot.send_message(
+        call.message.chat.id,
+        tr(user_id, "need_title"),
+        reply_markup=cancel_keyboard(user_id)
+    )
+
+
+# ============================================================
+# CATEGORY
+# ============================================================
+
+@bot.callback_query_handler(
+    func=lambda call:
+        call.data.startswith("order_category:")
+        or
+        call.data.startswith("service_category:")
+)
+def category_callback(call):
+
+    user_id = call.from_user.id
+
+    if user_id not in states:
+
+        bot.answer_callback_query(
+            call.id,
+            "Форма устарела.",
+            show_alert=True
+        )
+
+        return
+
+    category_key = call.data.split(
+        ":",
+        1
+    )[1]
+
+    category_names = dict(
+        CATEGORIES
+    )
+
+    category_label = category_names.get(
+        category_key,
+        category_key
+    )
+
+    data = states[user_id]["data"]
+
+    data["category"] = category_key
+    data["category_label"] = category_label
+
+    states[user_id]["step"] = "budget"
+
+    bot.answer_callback_query(
+        call.id
+    )
+
+    if data["kind"] == "order":
+
+        message_text = tr(
+            user_id,
+            "need_budget"
+        )
+
+    else:
+
+        message_text = tr(
+            user_id,
+            "need_price"
+        )
+
+    bot.send_message(
+        call.message.chat.id,
+        message_text,
+        reply_markup=cancel_keyboard(user_id)
+    )
+
+
+# ============================================================
+# ADMIN MODERATION
+# ============================================================
+
+@bot.callback_query_handler(
+    func=lambda call:
+        call.data.startswith("admin_approve:")
+        or
+        call.data.startswith("admin_reject:")
 )
 def admin_callback(call):
 
-    # Только администратор
     if call.from_user.id != ADMIN_ID:
 
         bot.answer_callback_query(
             call.id,
-            "⛔ У вас нет доступа.",
+            "Нет доступа.",
             show_alert=True
         )
 
         return
 
-    action, application_id_text = (
-        call.data.split(":")
+    action, listing_id_text = call.data.split(
+        ":",
+        1
     )
 
-    application_id = int(
-        application_id_text
-    )
+    try:
 
-    application = get_application(
-        application_id
-    )
+        listing_id = int(
+            listing_id_text
+        )
 
-    if not application:
+    except ValueError:
 
         bot.answer_callback_query(
             call.id,
-            "Заявка не найдена.",
+            "Неверный ID.",
             show_alert=True
         )
 
         return
 
-    (
-        app_id,
-        user_id,
-        first_name,
-        username,
-        text,
-        status
-    ) = application
+    with get_db() as conn:
 
-    if status != "pending":
+        listing = conn.execute(
+            "SELECT * FROM listings WHERE id=?",
+            (listing_id,)
+        ).fetchone()
+
+    if not listing:
 
         bot.answer_callback_query(
             call.id,
-            f"Заявка уже обработана: {status}",
+            "Объявление не найдено.",
             show_alert=True
         )
 
         return
 
-    # =====================================================
-    # ОДОБРЕНИЕ
-    # =====================================================
-
-    if action == "approve":
-
-        update_application_status(
-            application_id,
-            "approved"
-        )
-
-        safe_text = html.escape(
-            text
-        )
-
-        # Отправляем пользователю
-        try:
-
-            bot.send_message(
-                user_id,
-                "🎉 <b>Твоя заявка одобрена!</b>\n\n"
-                "Объявление прошло модерацию.",
-                parse_mode="HTML"
-            )
-
-        except Exception as e:
-
-            print(
-                f"Не удалось уведомить пользователя: {e}"
-            )
-
-        # Если GROUP_ID указан,
-        # публикуем в группе
-        if GROUP_ID:
-
-            try:
-
-                username_text = (
-                    f"@{username}"
-                    if username
-                    else "Связь через Telegram"
-                )
-
-                publication = (
-                    f"📢 <b>Новое объявление "
-                    f"Vitrina.md</b>\n\n"
-                    f"📝 {safe_text}\n\n"
-                    f"👤 Автор: "
-                    f"{html.escape(first_name)}\n"
-                    f"📩 {html.escape(username_text)}\n\n"
-                    f"🆔 Объявление №{app_id}"
-                )
-
-                bot.send_message(
-                    GROUP_ID,
-                    publication,
-                    parse_mode="HTML"
-                )
-
-            except Exception as e:
-
-                print(
-                    f"Ошибка публикации в группе: {e}"
-                )
-
-        bot.edit_message_text(
-            f"✅ <b>Заявка №{application_id} "
-            f"опубликована.</b>",
-            call.message.chat.id,
-            call.message.message_id,
-            parse_mode="HTML"
-        )
+    if listing["status"] != "pending":
 
         bot.answer_callback_query(
             call.id,
-            "Заявка опубликована!"
+            "Это объявление уже обработано.",
+            show_alert=True
         )
 
-    # =====================================================
+        return
+
+    # --------------------------------------------------------
     # ОТКЛОНЕНИЕ
-    # =====================================================
+    # --------------------------------------------------------
 
-    elif action == "reject":
+    if action == "admin_reject":
 
-        update_application_status(
-            application_id,
-            "rejected"
+        with get_db() as conn:
+
+            conn.execute(
+                """
+                UPDATE listings
+                SET status='rejected'
+                WHERE id=?
+                """,
+                (listing_id,)
+            )
+
+            conn.commit()
+
+        bot.answer_callback_query(
+            call.id,
+            "Отклонено."
         )
 
         try:
 
-            bot.send_message(
-                user_id,
-                "❌ <b>Заявка отклонена.</b>\n\n"
-                "Объявление не прошло модерацию.",
-                parse_mode="HTML"
+            bot.edit_message_reply_markup(
+                call.message.chat.id,
+                call.message.message_id,
+                reply_markup=None
             )
 
-        except Exception as e:
+        except Exception:
 
-            print(
-                f"Не удалось уведомить пользователя: {e}"
+            logger.exception(
+                "Could not remove admin buttons"
             )
 
-        bot.edit_message_text(
-            f"❌ <b>Заявка №{application_id} "
-            f"отклонена.</b>",
-            call.message.chat.id,
-            call.message.message_id,
-            parse_mode="HTML"
+        notify_user(
+            listing["user_id"],
+            tr(
+                listing["user_id"],
+                "rejected"
+            )
+        )
+
+        return
+
+    # --------------------------------------------------------
+    # ОДОБРЕНИЕ
+    # --------------------------------------------------------
+
+    try:
+
+        publish_listing(
+            listing_id
+        )
+
+        with get_db() as conn:
+
+            conn.execute(
+                """
+                UPDATE listings
+                SET status='approved'
+                WHERE id=?
+                """,
+                (listing_id,)
+            )
+
+            conn.commit()
+
+        bot.answer_callback_query(
+            call.id,
+            "Опубликовано."
+        )
+
+        try:
+
+            bot.edit_message_reply_markup(
+                call.message.chat.id,
+                call.message.message_id,
+                reply_markup=None
+            )
+
+        except Exception:
+
+            logger.exception(
+                "Could not remove admin buttons"
+            )
+
+        notify_user(
+            listing["user_id"],
+            tr(
+                listing["user_id"],
+                "approved"
+            )
+            + "\n"
+            + tr(
+                listing["user_id"],
+                "published"
+            )
+        )
+
+    except Exception as error:
+
+        logger.exception(
+            "Publication failed"
         )
 
         bot.answer_callback_query(
             call.id,
-            "Заявка отклонена."
+            "Ошибка публикации.",
+            show_alert=True
+        )
+
+        bot.send_message(
+            ADMIN_ID,
+            "⚠️ <b>Ошибка публикации</b>\n\n"
+            f"Объявление: #{listing_id}\n"
+            f"<code>{escape(error)}</code>"
         )
 
 
-# =========================================================
-# ЗАПУСК БОТА
-# =========================================================
+# ============================================================
+# PUBLICATION TO GROUP
+# ============================================================
+
+def publish_listing(listing_id):
+
+    if not GROUP_ID:
+
+        raise RuntimeError(
+            "GROUP_ID не установлен в Render."
+        )
+
+    with get_db() as conn:
+
+        row = conn.execute("""
+            SELECT
+                listings.*,
+                users.username
+            FROM listings
+
+            JOIN users
+                ON users.user_id = listings.user_id
+
+            WHERE listings.id=?
+        """, (listing_id,)).fetchone()
+
+    if not row:
+
+        raise RuntimeError(
+            "Объявление не найдено."
+        )
+
+    if row["kind"] == "order":
+
+        type_title = "📝 ЗАКАЗ"
+
+    else:
+
+        type_title = "👨‍💻 УСЛУГА"
+
+    text = (
+        f"<b>{type_title}</b>\n\n"
+        f"<b>{escape(row['title'])}</b>\n"
+        f"🏷 {escape(row['category'])}\n"
+    )
+
+    if row["budget"]:
+
+        label = (
+            "Бюджет"
+            if row["kind"] == "order"
+            else
+            "Цена"
+        )
+
+        text += (
+            f"💰 {label}: "
+            f"{escape(row['budget'])}\n"
+        )
+
+    if row["city"]:
+
+        text += (
+            f"📍 {escape(row['city'])}\n"
+        )
+
+    if row["deadline"]:
+
+        text += (
+            f"📅 Срок: "
+            f"{escape(row['deadline'])}\n"
+        )
+
+    if row["experience"]:
+
+        text += (
+            f"⭐ Опыт: "
+            f"{escape(row['experience'])}\n"
+        )
+
+    text += (
+        "\n"
+        f"{escape(row['description'])}\n"
+    )
+
+    if row["portfolio"]:
+
+        text += (
+            "\n🔗 Портфолио: "
+            f"{escape(row['portfolio'])}\n"
+        )
+
+    text += (
+        "\n<b>Vitrina Freelance MD</b>"
+    )
+
+    keyboard = None
+
+    if row["username"]:
+
+        keyboard = types.InlineKeyboardMarkup()
+
+        keyboard.add(
+            types.InlineKeyboardButton(
+                "💬 Связаться",
+                url=(
+                    "https://t.me/"
+                    + row["username"]
+                )
+            )
+        )
+
+    elif BOT_USERNAME:
+
+        keyboard = types.InlineKeyboardMarkup()
+
+        keyboard.add(
+            types.InlineKeyboardButton(
+                "💬 Связаться через бота",
+                url=(
+                    f"https://t.me/"
+                    f"{BOT_USERNAME}"
+                    f"?start=contact_{listing_id}"
+                )
+            )
+        )
+
+    # Фото портфолио
+    if row["photo_id"]:
+
+        message = bot.send_photo(
+
+            GROUP_ID,
+
+            row["photo_id"],
+
+            caption=text,
+
+            reply_markup=keyboard
+
+        )
+
+    else:
+
+        message = bot.send_message(
+
+            GROUP_ID,
+
+            text,
+
+            reply_markup=keyboard
+
+        )
+
+    with get_db() as conn:
+
+        conn.execute(
+            """
+            UPDATE listings
+            SET published_message_id=?
+            WHERE id=?
+            """,
+            (
+                message.message_id,
+                listing_id
+            )
+        )
+
+        conn.commit()
+
+    return message.message_id
+
+
+# ============================================================
+# USER NOTIFICATION
+# ============================================================
+
+def notify_user(
+    user_id,
+    text
+):
+
+    try:
+
+        bot.send_message(
+            user_id,
+            text,
+            reply_markup=main_menu(user_id)
+        )
+
+    except Exception:
+
+        logger.exception(
+            "Could not notify user %s",
+            user_id
+        )
+
+
+# ============================================================
+# SUBMIT FORM
+# ============================================================
+
+@bot.callback_query_handler(
+    func=lambda call:
+        call.data == "submit_form"
+)
+def submit_form(call):
+
+    user_id = call.from_user.id
+
+    state = states.get(
+        user_id
+    )
+
+    if not state:
+
+        bot.answer_callback_query(
+            call.id,
+            "Форма уже закрыта.",
+            show_alert=True
+        )
+
+        return
+
+    data = state["data"]
+
+    with get_db() as conn:
+
+        cursor = conn.execute(
+            """
+            INSERT INTO listings
+            (
+                user_id,
+                kind,
+                title,
+                category,
+                budget,
+                city,
+                deadline,
+                description,
+                experience,
+                portfolio,
+                photo_id,
+                contact,
+                status,
+                created_at
+            )
+
+            VALUES
+            (
+                ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?, ?
+            )
+            """,
+
+            (
+
+                user_id,
+
+                data["kind"],
+
+                data["title"],
+
+                data["category_label"],
+
+                data.get("budget"),
+
+                data.get("city"),
+
+                data.get("deadline"),
+
+                data["description"],
+
+                data.get("experience"),
+
+                data.get("portfolio"),
+
+                data.get("photo_id"),
+
+                data.get("contact"),
+
+                "pending",
+
+                current_time()
+
+            )
+        )
+
+        listing_id = cursor.lastrowid
+
+        conn.commit()
+
+    states.pop(
+        user_id,
+        None
+    )
+
+    # Формируем карточку админу
+
+    with get_db() as conn:
+
+        row = conn.execute("""
+            SELECT
+                listings.*,
+                users.first_name,
+                users.username
+            FROM listings
+
+            JOIN users
+                ON users.user_id = listings.user_id
+
+            WHERE listings.id=?
+        """, (listing_id,)).fetchone()
+
+    if row["kind"] == "order":
+
+        type_title = "📝 ЗАКАЗ"
+
+    else:
+
+        type_title = "👨‍💻 УСЛУГА"
+
+    admin_text = (
+
+        f"<b>🆕 Новое объявление #{listing_id}</b>\n\n"
+
+        f"{type_title}\n"
+
+        f"<b>{escape(row['title'])}</b>\n"
+
+        f"🏷 {escape(row['category'])}\n"
+
+        f"💰 {escape(row['budget'])}\n"
+
+        f"📍 {escape(row['city'])}\n"
+
+    )
+
+    if row["deadline"]:
+
+        admin_text += (
+            f"📅 {escape(row['deadline'])}\n"
+        )
+
+    if row["experience"]:
+
+        admin_text += (
+            f"⭐ {escape(row['experience'])}\n"
+        )
+
+    admin_text += (
+        "\n"
+        f"📝 {escape(row['description'])}\n"
+    )
+
+    if row["portfolio"]:
+
+        admin_text += (
+            "\n🔗 "
+            f"{escape(row['portfolio'])}\n"
+        )
+
+    admin_text += (
+        "\n👤 "
+        f"{escape(row['first_name'])}"
+    )
+
+    if row["username"]:
+
+        admin_text += (
+            f" (@{escape(row['username'])})"
+        )
+
+    keyboard = types.InlineKeyboardMarkup(
+        row_width=2
+    )
+
+    keyboard.add(
+
+        types.InlineKeyboardButton(
+            "✅ Одобрить",
+            callback_data=(
+                f"admin_approve:{listing_id}"
+            )
+        ),
+
+        types.InlineKeyboardButton(
+            "❌ Отклонить",
+            callback_data=(
+                f"admin_reject:{listing_id}"
+            )
+        )
+
+    )
+
+    try:
+
+        if row["photo_id"]:
+
+            bot.send_photo(
+
+                ADMIN_ID,
+
+                row["photo_id"],
+
+                caption=admin_text,
+
+                reply_markup=keyboard
+
+            )
+
+        else:
+
+            bot.send_message(
+
+                ADMIN_ID,
+
+                admin_text,
+
+                reply_markup=keyboard
+
+            )
+
+    except Exception:
+
+        logger.exception(
+            "Could not send listing to admin"
+        )
+
+        bot.send_message(
+            call.message.chat.id,
+            "⚠️ Объявление сохранено, "
+            "но возникла ошибка отправки админу."
+        )
+
+        return
+
+    bot.answer_callback_query(
+        call.id,
+        "Отправлено."
+    )
+
+    bot.send_message(
+        call.message.chat.id,
+        tr(user_id, "saved"),
+        reply_markup=main_menu(user_id)
+    )
+
+
+# ============================================================
+# FORM INPUT
+# ============================================================
+
+@bot.message_handler(
+    content_types=["text", "photo"]
+)
+def form_input(message):
+
+    user_id = message.from_user.id
+
+    save_user(
+        message.from_user
+    )
+
+    if user_id not in states:
+
+        return
+
+    state = states[user_id]
+
+    step = state["step"]
+
+    data = state["data"]
+
+    # --------------------------------------------------------
+    # SEARCH
+    # --------------------------------------------------------
+
+    if step == "search":
+
+        if not message.text:
+
+            bot.send_message(
+                message.chat.id,
+                tr(user_id, "invalid")
+            )
+
+            return
+
+        kind = data.get(
+            "kind",
+            "order"
+        )
+
+        states.pop(
+            user_id,
+            None
+        )
+
+        show_search_results(
+            message.chat.id,
+            user_id,
+            kind,
+            message.text.strip()
+        )
+
+        return
+
+    # --------------------------------------------------------
+    # TITLE
+    # --------------------------------------------------------
+
+    if step == "title":
+
+        if not message.text:
+
+            bot.send_message(
+                message.chat.id,
+                tr(user_id, "invalid")
+            )
+
+            return
+
+        data["title"] = (
+            message.text.strip()[:120]
+        )
+
+        state["step"] = "category"
+
+        bot.send_message(
+            message.chat.id,
+            tr(user_id, "need_category"),
+            reply_markup=category_keyboard(
+                data["kind"]
+            )
+        )
+
+        return
+
+    # --------------------------------------------------------
+    # BUDGET / PRICE
+    # --------------------------------------------------------
+
+    if step == "budget":
+
+        if not message.text:
+
+            bot.send_message(
+                message.chat.id,
+                tr(user_id, "invalid")
+            )
+
+            return
+
+        data["budget"] = (
+            message.text.strip()[:100]
+        )
+
+        state["step"] = "city"
+
+        bot.send_message(
+            message.chat.id,
+            tr(user_id, "need_city"),
+            reply_markup=cancel_keyboard(user_id)
+        )
+
+        return
+
+    # --------------------------------------------------------
+    # CITY
+    # --------------------------------------------------------
+
+    if step == "city":
+
+        if not message.text:
+
+            bot.send_message(
+                message.chat.id,
+                tr(user_id, "invalid")
+            )
+
+            return
+
+        data["city"] = (
+            message.text.strip()[:100]
+        )
+
+        if data["kind"] == "order":
+
+            state["step"] = "deadline"
+
+            bot.send_message(
+                message.chat.id,
+                tr(user_id, "need_deadline"),
+                reply_markup=cancel_keyboard(user_id)
+            )
+
+        else:
+
+            state["step"] = "experience"
+
+            bot.send_message(
+                message.chat.id,
+                tr(user_id, "need_experience"),
+                reply_markup=cancel_keyboard(user_id)
+            )
+
+        return
+
+    # --------------------------------------------------------
+    # DEADLINE
+    # --------------------------------------------------------
+
+    if step == "deadline":
+
+        if not message.text:
+
+            bot.send_message(
+                message.chat.id,
+                tr(user_id, "invalid")
+            )
+
+            return
+
+        data["deadline"] = (
+            message.text.strip()[:100]
+        )
+
+        state["step"] = "description"
+
+        bot.send_message(
+            message.chat.id,
+            tr(user_id, "need_description"),
+            reply_markup=cancel_keyboard(user_id)
+        )
+
+        return
+
+    # --------------------------------------------------------
+    # EXPERIENCE
+    # --------------------------------------------------------
+
+    if step == "experience":
+
+        if not message.text:
+
+            bot.send_message(
+                message.chat.id,
+                tr(user_id, "invalid")
+            )
+
+            return
+
+        data["experience"] = (
+            message.text.strip()[:500]
+        )
+
+        state["step"] = "description"
+
+        bot.send_message(
+            message.chat.id,
+            tr(user_id, "need_description"),
+            reply_markup=cancel_keyboard(user_id)
+        )
+
+        return
+
+    # --------------------------------------------------------
+    # DESCRIPTION
+    # --------------------------------------------------------
+
+    if step == "description":
+
+        if not message.text:
+
+            bot.send_message(
+                message.chat.id,
+                tr(user_id, "invalid")
+            )
+
+            return
+
+        data["description"] = (
+            message.text.strip()[:2500]
+        )
+
+        state["step"] = "portfolio"
+
+        bot.send_message(
+            message.chat.id,
+            tr(user_id, "need_portfolio"),
+            reply_markup=cancel_keyboard(user_id)
+        )
+
+        return
+
+    # --------------------------------------------------------
+    # PORTFOLIO
+    # --------------------------------------------------------
+
+    if step == "portfolio":
+
+        if message.photo:
+
+            data["photo_id"] = (
+                message.photo[-1].file_id
+            )
+
+            data["portfolio"] = (
+                message.caption.strip()[:1000]
+                if message.caption
+                else
+                "Фото портфолио"
+            )
+
+        elif message.text:
+
+            data["portfolio"] = (
+                message.text.strip()[:1000]
+            )
+
+        else:
+
+            bot.send_message(
+                message.chat.id,
+                tr(user_id, "invalid")
+            )
+
+            return
+
+        state["step"] = "contact"
+
+        bot.send_message(
+            message.chat.id,
+            tr(user_id, "need_contact"),
+            reply_markup=cancel_keyboard(user_id)
+        )
+
+        return
+
+    # --------------------------------------------------------
+    # CONTACT
+    # --------------------------------------------------------
+
+    if step == "contact":
+
+        if not message.text:
+
+            bot.send_message(
+                message.chat.id,
+                tr(user_id, "invalid")
+            )
+
+            return
+
+        data["contact"] = (
+            message.text.strip()[:200]
+        )
+
+        state["step"] = "preview"
+
+        show_preview(
+            message.chat.id,
+            user_id
+        )
+
+        return
+
+
+# ============================================================
+# MENU COMMAND
+# ============================================================
+
+@bot.message_handler(
+    commands=["menu"]
+)
+def menu_command(message):
+
+    save_user(
+        message.from_user
+    )
+
+    user_id = message.from_user.id
+
+    bot.send_message(
+        message.chat.id,
+        tr(user_id, "choose"),
+        reply_markup=main_menu(user_id)
+    )
+
+
+# ============================================================
+# CANCEL COMMAND
+# ============================================================
+
+@bot.message_handler(
+    commands=["cancel"]
+)
+def cancel_command(message):
+
+    user_id = message.from_user.id
+
+    states.pop(
+        user_id,
+        None
+    )
+
+    save_user(
+        message.from_user
+    )
+
+    bot.send_message(
+        message.chat.id,
+        tr(user_id, "choose"),
+        reply_markup=main_menu(user_id)
+    )
+
+
+# ============================================================
+# START BOT
+# ============================================================
 
 if __name__ == "__main__":
 
-    init_database()
+    init_db()
 
-    print("--------------------------------")
-    print("Vitrina.md бот запущен")
-    print("--------------------------------")
+    logger.info(
+        "===================================="
+    )
+
+    logger.info(
+        "Vitrina Freelance MD started"
+    )
+
+    logger.info(
+        "GROUP_ID = %s",
+        GROUP_ID
+    )
+
+    logger.info(
+        "ADMIN_ID = %s",
+        ADMIN_ID
+    )
+
+    logger.info(
+        "===================================="
+    )
 
     bot.infinity_polling(
         skip_pending=True,
-        interval=1,
-        timeout=30
+        timeout=30,
+        long_polling_timeout=30
     )
