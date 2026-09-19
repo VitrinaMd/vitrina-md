@@ -8,6 +8,9 @@ TOKEN = '8724559334:AAEpp2ABawjVc8qZ1xOaqoYVTmWo97yKtGc'
 # Твой Telegram ID администратора
 ADMIN_ID = 7419021481
 
+# Юзернейм твоего публичного канала
+CHANNEL_ID = '@vitrina_freelance_md' 
+
 bot = telebot.TeleBot(TOKEN)
 
 # Словарь для отслеживания шагов пользователей
@@ -59,8 +62,6 @@ def handle_message(message):
     username = f"@{message.from_user.username}" if message.from_user.username else f"ID: {user_id}"
     text = message.text
     current_state = user_states.get(user_id)
-
-    print(f"Получено сообщение от {username} (Состояние: {current_state}): {text}")
 
     if text == '🎨 Разместить резюме (Найти работу)':
         user_states[user_id] = 'waiting_for_designer_portfolio'
@@ -165,15 +166,26 @@ def callback_query(call):
     if action == 'approve':
         if target_type == 'des':
             bot.send_message(target_user_id, "🎉 Ваше резюме одобрено и опубликовано!")
+            channel_post = f"📢 **Новое резюме на бирже!**\n\n{call.message.text.replace('🎨 **Новое резюме!**', '').strip()}"
         elif target_type == 'sel':
             bot.send_message(target_user_id, "🎉 Ваш заказ одобрен и опубликован!")
-        bot.edit_message_text(text=call.message.text + "\n\n**[СТАТУС: ОДОБРЕНО ✅]**", chat_id=call.message.chat.id, message_id=call.message.message_id, parse_mode='Markdown')
+            channel_post = f"📢 **Новый заказ на бирже!**\n\n{call.message.text.replace('🛍 **Новый заказ!**', '').strip()}"
+        
+        # Отправка в публичный канал
+        try:
+            bot.send_message(CHANNEL_ID, channel_post, parse_mode='Markdown')
+            print("Заявка успешно опубликована в канале!")
+        except Exception as e:
+            print(f"Ошибка публикации в канал: {e}")
+            
+        bot.edit_message_text(text=call.message.text + "\n\n**[СТАТУС: ОДОБРЕНО И ОПУБЛИКОВАНО ✅]**", chat_id=call.message.chat.id, message_id=call.message.message_id, parse_mode='Markdown')
         
     elif action == 'reject':
         if target_type == 'des':
             bot.send_message(target_user_id, "⚠️ Ваше резюме отклонено модератором.")
         else:
             bot.send_message(target_user_id, "⚠️ Ваш заказ отклонен модератором.")
+            
         bot.edit_message_text(text=call.message.text + "\n\n**[СТАТУС: ОТКЛОНЕНО ❌]**", chat_id=call.message.chat.id, message_id=call.message.message_id, parse_mode='Markdown')
 
 if __name__ == '__main__':
