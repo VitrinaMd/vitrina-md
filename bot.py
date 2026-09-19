@@ -2238,7 +2238,7 @@ def publish_listing(listing_id):
                 )
             )
         )
-    elif BOT_USERNAME:
+    if BOT_USERNAME:
         keyboard.add(
             types.InlineKeyboardButton(
                 "💬 Связаться с продавцом",
