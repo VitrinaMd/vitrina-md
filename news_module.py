@@ -368,6 +368,18 @@ def publish_one_if_due(bot, db_path, channel_target, bot_username):
         conn.close()
 
 
+def handle_listing_published(bot, db_path, channel_target, bot_username):
+    """Count a successful listing and immediately publish queued news if due."""
+    register_listing_published(db_path)
+    return publish_one_if_due(
+        bot=bot,
+        db_path=db_path,
+        channel_target=channel_target,
+        bot_username=bot_username,
+    )
+
+
+
 def recover_interrupted_news(db_path):
     conn = _db(db_path)
     try:
