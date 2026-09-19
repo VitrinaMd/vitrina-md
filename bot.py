@@ -3,6 +3,7 @@ import re
 import html
 import sqlite3
 import logging
+from urllib.parse import quote
 from datetime import datetime
 
 import telebot
@@ -173,6 +174,7 @@ TEXT = {
         "language": "🌐 Язык",
 
         "submit_ad": "➕ Подать объявление",
+        "invite": "👥 Пригласить друзей",
 
         "search_prompt": (
             "🔎 Напишите, что вы ищете.\n\n"
@@ -294,6 +296,7 @@ TEXT = {
         "language": "🌐 Limbă",
 
         "submit_ad": "➕ Publică un anunț",
+        "invite": "👥 Invită prieteni",
 
         "search_prompt": "🔎 Scrie ce cauți.",
 
@@ -472,6 +475,13 @@ CATEGORY_KEYWORDS = {
         "ресницы",
         "красота",
         "beauty",
+        "маникюра",
+        "маникюрист",
+        "мастер маникюра",
+        "nail",
+        "coafor",
+        "frumusețe",
+        "frumusete",
     ],
 }
 
@@ -519,6 +529,19 @@ def init_db():
             username TEXT,
             language TEXT DEFAULT 'ru',
             created_at TEXT
+        )
+    """)
+
+    # Growth v1: referral tracking. Safe migration for existing databases.
+    user_columns = {row[1] for row in cur.execute("PRAGMA table_info(users)").fetchall()}
+    if "referred_by" not in user_columns:
+        cur.execute("ALTER TABLE users ADD COLUMN referred_by INTEGER")
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS referrals (
+            invited_user_id INTEGER PRIMARY KEY,
+            referrer_user_id INTEGER NOT NULL,
+            created_at TEXT NOT NULL
         )
     """)
 
@@ -664,6 +687,7 @@ def main_menu(user_id):
     )
 
     markup.row(
+        types.KeyboardButton(tr(user_id, "invite")),
         types.KeyboardButton(tr(user_id, "language"))
     )
 
@@ -827,27 +851,35 @@ def admin_keyboard(listing_id):
 # ============================================================
 
 def detect_category(text):
-    text_lower = text.lower()
-
+    # Growth v1: score whole words/phrases instead of loose substrings.
+    # Longer, more specific phrases get a little more weight.
+    normalized = re.sub(r"\s+", " ", text.lower()).strip()
     scores = {}
 
     for category, keywords in CATEGORY_KEYWORDS.items():
         score = 0
-
         for keyword in keywords:
-            if keyword.lower() in text_lower:
-                score += 1
-
+            kw = keyword.lower().strip()
+            pattern = rf"(?<!\w){re.escape(kw)}(?!\w)"
+            if re.search(pattern, normalized, flags=re.IGNORECASE):
+                score += 2 if " " in kw else 1
         if score:
             scores[category] = score
 
     if not scores:
         return "other"
 
-    return max(
-        scores,
-        key=scores.get
+    # Beauty terms are intentionally decisive: this prevents phrases such as
+    # "мастер маникюра" from being classified into unrelated categories.
+    beauty_markers = (
+        "маникюр", "маникюра", "маникюрист", "педикюр", "парикмахер",
+        "визажист", "косметолог", "бровист", "ресницы", "nail",
+        "frumusețe", "frumusete", "coafor"
     )
+    if any(re.search(rf"(?<!\w){re.escape(x)}(?!\w)", normalized) for x in beauty_markers):
+        return "beauty"
+
+    return max(scores, key=scores.get)
 
 
 def category_label(category):
@@ -1107,6 +1139,32 @@ def preview_text(user_id, data):
     return "\n".join(lines)
 
 
+CATEGORY_HASHTAGS = {
+    "design": "#Дизайн",
+    "programming": "#IT",
+    "marketing": "#Маркетинг",
+    "photo_video": "#ФотоВидео",
+    "text": "#Тексты",
+    "translation": "#Переводы",
+    "construction": "#Ремонт",
+    "transport": "#Транспорт",
+    "beauty": "#Красота",
+    "other": "#Услуги",
+}
+
+def listing_hashtags(row):
+    tags = [CATEGORY_HASHTAGS.get(row["category"] or "other", "#Услуги")]
+    if row["kind"] == "order":
+        tags.append("#ИщуСпециалиста")
+    else:
+        tags.append("#ПредлагаюУслуги")
+    city = (row["city"] or "").lower()
+    if "кишин" in city or "chișinău" in city or "chisinau" in city:
+        tags.append("#Кишинёв")
+    tags.append("#VitrinaMD")
+    return " ".join(tags)
+
+
 def render_public_text(row, description=None):
     kind_text = (
         "🔎 Ищу специалиста"
@@ -1169,7 +1227,10 @@ def render_public_text(row, description=None):
 
     lines.extend([
         "",
+        listing_hashtags(row),
+        "",
         "📢 <b>Vitrina Freelance MD</b>",
+        "📤 Знаете подходящего человека? Поделитесь объявлением.",
     ])
 
     return "\n".join(lines)
@@ -1228,7 +1289,7 @@ def get_channel_target():
     return None
 
 
-def publish_keyboard(row):
+def publish_keyboard(row, message_id=None):
     markup = types.InlineKeyboardMarkup()
 
     username = (
@@ -1263,6 +1324,19 @@ def publish_keyboard(row):
             types.InlineKeyboardButton(
                 "➕ Подать объявление",
                 url=f"https://t.me/{BOT_USERNAME}?start=post"
+            )
+        )
+
+    if message_id and CHANNEL_USERNAME:
+        post_url = f"https://t.me/{CHANNEL_USERNAME}/{message_id}"
+        share_url = (
+            "https://t.me/share/url?url=" + quote(post_url, safe="") +
+            "&text=" + quote("Посмотрите это объявление на Vitrina Freelance MD", safe="")
+        )
+        markup.add(
+            types.InlineKeyboardButton(
+                "📤 Поделиться",
+                url=share_url
             )
         )
 
@@ -1336,6 +1410,16 @@ def publish_listing(listing_id):
             reply_markup=keyboard,
             disable_web_page_preview=True
         )
+
+    # Message id is known only after publication, so now add a real share link.
+    try:
+        bot.edit_message_reply_markup(
+            chat_id=target,
+            message_id=message.message_id,
+            reply_markup=publish_keyboard(row, message.message_id)
+        )
+    except Exception as exc:
+        logger.warning("Could not add share button to listing %s: %s", listing_id, exc)
 
     conn = get_db()
 
@@ -1676,6 +1760,59 @@ def send_moderation(listing_id):
 
 
 # ============================================================
+# GROWTH: REFERRALS / STATS
+# ============================================================
+
+def register_referral(invited_user_id, referrer_user_id):
+    if invited_user_id == referrer_user_id:
+        return False
+    conn = get_db()
+    try:
+        existing = conn.execute(
+            "SELECT 1 FROM referrals WHERE invited_user_id = ?",
+            (invited_user_id,)
+        ).fetchone()
+        if existing:
+            return False
+        conn.execute(
+            "INSERT INTO referrals (invited_user_id, referrer_user_id, created_at) VALUES (?, ?, ?)",
+            (invited_user_id, referrer_user_id, current_time())
+        )
+        conn.execute(
+            "UPDATE users SET referred_by = ? WHERE user_id = ? AND referred_by IS NULL",
+            (referrer_user_id, invited_user_id)
+        )
+        conn.commit()
+        logger.info("Referral registered: %s -> %s", referrer_user_id, invited_user_id)
+        return True
+    finally:
+        conn.close()
+
+def referral_count(user_id):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT COUNT(*) AS c FROM referrals WHERE referrer_user_id = ?",
+        (user_id,)
+    ).fetchone()
+    conn.close()
+    return int(row["c"] if row else 0)
+
+def send_referral_link(chat_id, user_id):
+    if not BOT_USERNAME:
+        bot.send_message(chat_id, "Ссылка приглашения временно недоступна.")
+        return
+    link = f"https://t.me/{BOT_USERNAME}?start=ref_{user_id}"
+    count = referral_count(user_id)
+    bot.send_message(
+        chat_id,
+        "👥 <b>Пригласить друзей</b>\n\n"
+        f"Ваша персональная ссылка:\n{html.escape(link)}\n\n"
+        f"Приглашено: <b>{count}</b>\n\n"
+        "Отправьте ссылку знакомым, которым нужны работа, клиенты или специалисты."
+    )
+
+
+# ============================================================
 # COMMAND / START
 # ============================================================
 
@@ -1689,6 +1826,13 @@ def start_handler(message):
 
     if len(args) > 1:
         payload = args[1].strip()
+
+        if payload.startswith("ref_"):
+            try:
+                referrer_id = int(payload.split("_", 1)[1])
+                register_referral(user_id, referrer_id)
+            except (ValueError, TypeError):
+                pass
 
         if payload == "post":
             start_quick_form(
@@ -2576,6 +2720,10 @@ def handle_menu_text(message):
 
         return
 
+    if text == tr(user_id, "invite"):
+        send_referral_link(chat_id, user_id)
+        return
+
     if text == tr(user_id, "language"):
         markup = types.InlineKeyboardMarkup()
 
@@ -2803,6 +2951,45 @@ def show_my_listings(chat_id, user_id):
         chat_id,
         "📋 Готово.",
         reply_markup=main_menu(user_id)
+    )
+
+
+# ============================================================
+# GROWTH COMMANDS
+# ============================================================
+
+@bot.message_handler(commands=["invite"])
+def invite_handler(message):
+    save_user(message.from_user)
+    send_referral_link(message.chat.id, message.from_user.id)
+
+
+@bot.message_handler(commands=["stats"])
+def stats_handler(message):
+    if message.from_user.id != ADMIN_ID:
+        return
+    conn = get_db()
+    total_users = conn.execute("SELECT COUNT(*) AS c FROM users").fetchone()["c"]
+    users_7d = conn.execute(
+        "SELECT COUNT(*) AS c FROM users WHERE datetime(created_at) >= datetime('now', '-7 days')"
+    ).fetchone()["c"]
+    total_listings = conn.execute("SELECT COUNT(*) AS c FROM listings").fetchone()["c"]
+    published = conn.execute("SELECT COUNT(*) AS c FROM listings WHERE status = 'approved'").fetchone()["c"]
+    referrals = conn.execute("SELECT COUNT(*) AS c FROM referrals").fetchone()["c"]
+    top = conn.execute(
+        "SELECT category, COUNT(*) AS c FROM listings WHERE status='approved' GROUP BY category ORDER BY c DESC LIMIT 3"
+    ).fetchall()
+    conn.close()
+    top_text = ", ".join(f"{category_label(r['category'])}: {r['c']}" for r in top) or "пока нет данных"
+    bot.send_message(
+        message.chat.id,
+        "📊 <b>Vitrina — статистика</b>\n\n"
+        f"👥 Пользователей: <b>{total_users}</b>\n"
+        f"🆕 Новых за 7 дней: <b>{users_7d}</b>\n"
+        f"📝 Объявлений всего: <b>{total_listings}</b>\n"
+        f"✅ Опубликовано: <b>{published}</b>\n"
+        f"🔗 Приглашений: <b>{referrals}</b>\n\n"
+        f"🔥 Популярные категории: {top_text}"
     )
 
 
