@@ -11,8 +11,8 @@ ADMIN_ID = 7419021481
 # Юзернейм твоего публичного канала
 CHANNEL_ID = '@vitrina_freelance_md' 
 
-# Юзернейм твоего бота (будет автоматически добавляться под каждым постом в канале)
-BOT_USERNAME = '@Vitrina_Freelance_bot' # Замени на точный юзернейм твоего бота, если он отличается
+# НАСТОЯЩИЙ юзернейм твоего бота
+BOT_USERNAME = '@vitrina_md_market_bot' 
 
 bot = telebot.TeleBot(TOKEN)
 
@@ -116,11 +116,9 @@ def handle_message(message):
             )
             
             try:
-                print(f"Пытаюсь отправить резюме админу {ADMIN_ID}...")
                 bot.send_message(ADMIN_ID, admin_text, parse_mode='Markdown', reply_markup=admin_markup)
-                print("Уведомление админу успешно отправлено!")
             except Exception as e:
-                print(f"ОШИБКА отправки администратору: {e}")
+                print(f"Ошибка отправки администратору: {e}")
             
             bot.send_message(
                 message.chat.id, 
@@ -140,11 +138,9 @@ def handle_message(message):
             )
             
             try:
-                print(f"Пытаюсь отправить заказ админу {ADMIN_ID}...")
                 bot.send_message(ADMIN_ID, admin_text, parse_mode='Markdown', reply_markup=admin_markup)
-                print("Уведомление админу успешно отправлено!")
             except Exception as e:
-                print(f"ОШИБКА отправки администратору: {e}")
+                print(f"Ошибка отправки администратору: {e}")
             
             bot.send_message(
                 message.chat.id, 
@@ -167,17 +163,22 @@ def callback_query(call):
     target_user_id = int(parts[2])
     
     if action == 'approve':
+        # Создаем инлайн-кнопку со ссылкой на бота прямо под постом в канале
+        channel_markup = types.InlineKeyboardMarkup()
+        bot_url = f"https://t.me/{BOT_USERNAME.replace('@', '')}"
+        channel_markup.add(types.InlineKeyboardButton("🤖 Разместить свое объявление в боте", url=bot_url))
+
         if target_type == 'des':
             bot.send_message(target_user_id, "🎉 Ваше резюме одобрено и опубликовано!")
-            channel_post = f"📢 **Новое резюме на бирже!**\n\n{call.message.text.replace('🎨 **Новое резюме!**', '').strip()}\n\n───────────────────\n🤖 *Хотите разместить свое резюме или заказ? Переходите в бота:* {BOT_USERNAME}"
+            channel_post = f"📢 **Новое резюме на бирже!**\n\n{call.message.text.replace('🎨 **Новое резюме!**', '').strip()}"
         elif target_type == 'sel':
             bot.send_message(target_user_id, "🎉 Ваш заказ одобрен и опубликован!")
-            channel_post = f"📢 **Новый заказ на бирже!**\n\n{call.message.text.replace('🛍 **Новый заказ!**', '').strip()}\n\n───────────────────\n🤖 *Хотите разместить свое резюме или заказ? Переходите в бота:* {BOT_USERNAME}"
+            channel_post = f"📢 **Новый заказ на бирже!**\n\n{call.message.text.replace('🛍 **Новый заказ!**', '').strip()}"
         
-        # Отправка в публичный канал
+        # Отправка в публичный канал с прикрепленной кнопкой-ссылкой
         try:
-            bot.send_message(CHANNEL_ID, channel_post, parse_mode='Markdown')
-            print("Заявка успешно опубликована в канале с активной ссылкой на бота!")
+            bot.send_message(CHANNEL_ID, channel_post, parse_mode='Markdown', reply_markup=channel_markup)
+            print("Заявка успешно опубликована в канале с рабочей кнопкой на бота!")
         except Exception as e:
             print(f"Ошибка публикации в канал: {e}")
             
