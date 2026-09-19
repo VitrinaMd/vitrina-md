@@ -10,7 +10,7 @@ from telebot import types
 
 from news_module import (
     init_news_db,
-    register_listing_published,
+    handle_listing_published,
     start_news_worker,
 )
 
@@ -1364,7 +1364,12 @@ def publish_listing(listing_id):
     # Учитываем только реально опубликованное объявление.
     # Повторный вызов publish_listing() не увеличит счётчик,
     # потому что выше есть ранний return при published_message_id.
-    register_listing_published(DB_PATH)
+    handle_listing_published(
+        bot=bot,
+        db_path=DB_PATH,
+        channel_target=get_channel_target(),
+        bot_username=BOT_USERNAME,
+    )
 
     return message.message_id
 
