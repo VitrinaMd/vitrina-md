@@ -856,36 +856,76 @@ def admin_keyboard(listing_id):
 # ============================================================
 
 def detect_category(text):
-    # Growth v1: score whole words/phrases instead of loose substrings.
-    # Longer, more specific phrases get a little more weight.
-    normalized = re.sub(r"\s+", " ", text.lower()).strip()
-    scores = {}
+    """Rule-based Parser v2: phrases + word stems, RU/RO, no external AI."""
+    normalized = re.sub(r"\s+", " ", text.lower().replace("ё", "е")).strip()
 
+    # Strong profession/service patterns. They are checked before generic words
+    # so phrases such as "мастер массажа" cannot fall into "Другое".
+    strong_patterns = {
+        "beauty": [
+            r"\bмассаж(?:ист|иста|истка|а|ный|истом)?\b", r"\bманикюр\w*\b",
+            r"\bпедикюр\w*\b", r"\bпарикмахер\w*\b", r"\bбарбер\w*\b",
+            r"\bвизажист\w*\b", r"\bкосметолог\w*\b", r"\bбровист\w*\b",
+            r"\bресниц\w*\b", r"\bэпиляц\w*\b", r"\bдепиляц\w*\b",
+            r"\bstilist\w*\b", r"\bcoafor\w*\b", r"\bmanichiur\w*\b",
+            r"\bpedichiur\w*\b", r"\bmasaj\w*\b", r"\bcosmetolog\w*\b",
+        ],
+        "construction": [
+            r"\bсантех\w*\b", r"\bэлектрик\w*\b", r"\bплиточ\w*\b",
+            r"\bстроит\w*\b", r"\bремонт\w*\b", r"\bмаляр\w*\b",
+            r"\bштукатур\w*\b", r"\bгипсокартон\w*\b", r"\bсварщик\w*\b",
+            r"\bкровел\w*\b", r"\bмебел\w*\b", r"\bzugrav\w*\b",
+            r"\belectrician\w*\b", r"\binstalator\w*\b", r"\bconstruct\w*\b",
+        ],
+        "transport": [
+            r"\bводител\w*\b", r"\bкурьер\w*\b", r"\bтакси\w*\b",
+            r"\bперевоз\w*\b", r"\bдостав\w*\b", r"\bгрузчик\w*\b",
+            r"\bsofer\w*\b", r"\bșofer\w*\b", r"\bcurier\w*\b",
+            r"\btransport\w*\b",
+        ],
+        "programming": [
+            r"\bпрограммист\w*\b", r"\bразработчик\w*\b", r"\bdeveloper\w*\b",
+            r"\bprogramator\w*\b", r"\bpython\b", r"\bjavascript\b",
+            r"\bfrontend\b", r"\bbackend\b", r"\bвеб[- ]?разработ\w*\b",
+            r"\btelegram[- ]?бот\w*\b", r"\bсоздан\w* сайта\b",
+        ],
+        "design": [
+            r"\bдизайнер\w*\b", r"\bдизайн\w*\b", r"\blogo\b",
+            r"\bлоготип\w*\b", r"\bdesigner\w*\b", r"\bgrafic\w*\b",
+        ],
+        "marketing": [
+            r"\bмаркетолог\w*\b", r"\bмаркетинг\w*\b", r"\bsmm\b",
+            r"\bтаргетолог\w*\b", r"\bseo\b", r"\bmarketing\w*\b",
+        ],
+        "photo_video": [
+            r"\bфотограф\w*\b", r"\bвидеограф\w*\b", r"\bфотосъем\w*\b",
+            r"\bфотосъём\w*\b", r"\bвидеосъем\w*\b", r"\bvideo\w*\b",
+        ],
+        "translation": [
+            r"\bпереводчик\w*\b", r"\bперевод\w* текст\w*\b",
+            r"\btranslator\w*\b", r"\btraducator\w*\b", r"\btraducător\w*\b",
+        ],
+        "text": [
+            r"\bкопирайтер\w*\b", r"\bкопирайтинг\w*\b", r"\bредактор\w*\b",
+            r"\bcontent writer\b", r"\bcopywriter\w*\b",
+        ],
+    }
+
+    for category, patterns in strong_patterns.items():
+        if any(re.search(pattern, normalized, flags=re.IGNORECASE) for pattern in patterns):
+            return category
+
+    scores = {}
     for category, keywords in CATEGORY_KEYWORDS.items():
         score = 0
         for keyword in keywords:
-            kw = keyword.lower().strip()
-            pattern = rf"(?<!\w){re.escape(kw)}(?!\w)"
-            if re.search(pattern, normalized, flags=re.IGNORECASE):
+            kw = keyword.lower().replace("ё", "е").strip()
+            if re.search(rf"(?<!\w){re.escape(kw)}(?!\w)", normalized, flags=re.IGNORECASE):
                 score += 2 if " " in kw else 1
         if score:
             scores[category] = score
 
-    if not scores:
-        return "other"
-
-    # Beauty terms are intentionally decisive: this prevents phrases such as
-    # "мастер маникюра" from being classified into unrelated categories.
-    beauty_markers = (
-        "маникюр", "маникюра", "маникюрист", "педикюр", "парикмахер",
-        "визажист", "косметолог", "бровист", "ресницы", "nail",
-        "frumusețe", "frumusete", "coafor"
-    )
-    if any(re.search(rf"(?<!\w){re.escape(x)}(?!\w)", normalized) for x in beauty_markers):
-        return "beauty"
-
-    return max(scores, key=scores.get)
-
+    return max(scores, key=scores.get) if scores else "other"
 
 def category_label(category):
     for key, label in CATEGORIES:
@@ -896,32 +936,29 @@ def category_label(category):
 
 
 def extract_city(text):
-    text_lower = text.lower()
-
-    for alias, city in CITY_ALIASES.items():
-        if re.search(
-            rf"(?<!\w){re.escape(alias)}(?!\w)",
-            text_lower,
-            flags=re.IGNORECASE
-        ):
+    """Find known Moldovan cities, including common Russian/Romanian forms."""
+    normalized = text.lower().replace("ё", "е")
+    city_patterns = [
+        (r"\bкишин(?:ев|ева|еве|евом)\b", "Кишинёв"),
+        (r"\bchi(?:s|ș)in(?:a|ă)u\b", "Chișinău"),
+        (r"\bбельц(?:ы|ах|ами)?\b|\bбэлць\b|\bb(?:a|ă)l(?:t|ț)i\b", "Бельцы"),
+        (r"\bбендер(?:ы|ах|ами)?\b|\bbender\w*\b", "Бендеры"),
+        (r"\bтираспол(?:ь|я|е|ем)\b|\btiraspol\b", "Тирасполь"),
+        (r"\bкомрат(?:а|е|ом)?\b|\bcomrat\b", "Комрат"),
+        (r"\bкагул(?:а|е|ом)?\b|\bcahul\b", "Кагул"),
+        (r"\bоргеев(?:а|е|ом)?\b|\borhei\b", "Оргеев"),
+        (r"\bсорок(?:и|ах|ами)?\b|\bsoroca\b", "Сороки"),
+    ]
+    for pattern, city in city_patterns:
+        if re.search(pattern, normalized, flags=re.IGNORECASE):
             return city
 
-    patterns = [
-        r"(?:город|г\.?|or[aș]?|oras)\s*[:\-]?\s*([A-Za-zА-Яа-яЁёȘșȚțĂăÎî\s\-]{3,30})",
-    ]
-
-    for pattern in patterns:
-        match = re.search(
-            pattern,
-            text,
-            flags=re.IGNORECASE
-        )
-
-        if match:
-            return match.group(1).strip()
-
-    return ""
-
+    # Fallback only for explicitly labelled city; stop at punctuation/field words.
+    match = re.search(
+        r"(?:город|г\.|oras|oraș)\s*[:\-]?\s*([A-Za-zА-Яа-яȘșȚțĂăÎî-]{3,25})",
+        text, flags=re.IGNORECASE
+    )
+    return match.group(1).strip() if match else ""
 
 def extract_budget(text):
     patterns = [
@@ -988,23 +1025,19 @@ def extract_deadline(text):
 
 
 def extract_experience(text):
+    """Extract only the experience value, never the following city/phone text."""
     patterns = [
-        r"(?:опыт|стаж)\s*[:\-]?\s*([^,\n.!?]{2,60})",
-        r"([0-9]+)\s*(?:лет|года|год)\s*(?:опыта|стажа)",
+        r"(?:опыт|стаж)\s*[:\-]?\s*(?:работы\s*)?(\d{1,2}\s*(?:лет|года|год|месяц(?:а|ев)?))",
+        r"(\d{1,2}\s*(?:лет|года|год|месяц(?:а|ев)?))\s*(?:опыта|стажа)",
+        r"(?:experien(?:t|ț)(?:a|ă)|experienta|experiența)\s*[:\-]?\s*(\d{1,2}\s*(?:ani|an|luni))",
+        r"(\d{1,2}\s*(?:ani|an|luni))\s*(?:experien(?:t|ț)(?:a|ă)|experienta|experiența)",
+        r"(?:работаю|работает|в профессии)\s+(?:уже\s+)?(\d{1,2}\s*(?:лет|года|год))",
     ]
-
     for pattern in patterns:
-        match = re.search(
-            pattern,
-            text,
-            flags=re.IGNORECASE
-        )
-
+        match = re.search(pattern, text, flags=re.IGNORECASE)
         if match:
-            return match.group(1).strip()
-
+            return re.sub(r"\s+", " ", match.group(1).strip())
     return ""
-
 
 def extract_portfolio(text):
     match = re.search(
@@ -1033,6 +1066,8 @@ def extract_phone(text):
             return "+" + digits
         if raw.strip().startswith("+"):
             return "+" + digits
+        if len(digits) == 9 and digits.startswith("0"):
+            return "+373" + digits[1:]
         if len(digits) == 8:
             return "+373" + digits
 
