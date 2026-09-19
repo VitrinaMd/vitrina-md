@@ -566,6 +566,11 @@ def init_db():
         )
     """)
 
+    # Growth v1.1: phone number extracted from listing text.
+    listing_columns = {row[1] for row in cur.execute("PRAGMA table_info(listings)").fetchall()}
+    if "phone" not in listing_columns:
+        cur.execute("ALTER TABLE listings ADD COLUMN phone TEXT")
+
     conn.commit()
     conn.close()
 
@@ -1014,6 +1019,28 @@ def extract_portfolio(text):
     return ""
 
 
+def extract_phone(text):
+    """Extract and normalize a plausible phone number without inventing digits."""
+    candidates = re.findall(r"(?<!\d)(?:\+?\d[\d\s().-]{6,}\d)(?!\d)", text)
+
+    for raw in candidates:
+        digits = re.sub(r"\D", "", raw)
+        if not (8 <= len(digits) <= 15):
+            continue
+
+        # Moldova: users often write 373XXXXXXXX without the leading +.
+        if digits.startswith("373") and len(digits) == 11:
+            return "+" + digits
+        if raw.strip().startswith("+"):
+            return "+" + digits
+        if len(digits) == 8:
+            return "+373" + digits
+
+        return digits
+
+    return ""
+
+
 def extract_contact(text, user):
     match = re.search(
         r"(?<!\w)@([A-Za-z0-9_]{4,32})",
@@ -1071,6 +1098,7 @@ def parse_quick_ad(text, user, kind):
         "experience": extract_experience(text),
         "portfolio": extract_portfolio(text),
         "photo_id": None,
+        "phone": extract_phone(text),
         "contact": extract_contact(text, user),
     }
 
@@ -1114,6 +1142,11 @@ def preview_text(user_id, data):
     if data.get("experience"):
         lines.append(
             f"⭐ <b>Опыт:</b> {html.escape(data['experience'])}"
+        )
+
+    if data.get("phone"):
+        lines.append(
+            f"📞 <b>Телефон:</b> {html.escape(data['phone'])}"
         )
 
     lines.extend([
@@ -1209,6 +1242,11 @@ def render_public_text(row, description=None):
         lines.append(
             f"⭐ <b>Опыт:</b> "
             f"{html.escape(row['experience'])}"
+        )
+
+    if "phone" in row.keys() and row["phone"]:
+        lines.append(
+            f"📞 <b>Телефон:</b> {html.escape(row['phone'])}"
         )
 
     if description:
@@ -1572,7 +1610,7 @@ def submit_form(chat_id, user_id):
         )
         return
 
-    if not data.get("contact"):
+    if not data.get("contact") and not data.get("phone"):
         state["step"] = "contact"
 
         bot.send_message(
@@ -1599,11 +1637,12 @@ def submit_form(chat_id, user_id):
             experience,
             portfolio,
             photo_id,
+            phone,
             contact,
             status,
             created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             user_id,
@@ -1617,6 +1656,7 @@ def submit_form(chat_id, user_id):
             data.get("experience", ""),
             data.get("portfolio", ""),
             data.get("photo_id"),
+            data.get("phone", ""),
             data.get("contact", ""),
             "pending",
             current_time()
@@ -1685,6 +1725,11 @@ def moderation_text(row):
         lines.append(
             f"⭐ <b>Опыт:</b> "
             f"{html.escape(row['experience'])}"
+        )
+
+    if "phone" in row.keys() and row["phone"]:
+        lines.append(
+            f"📞 <b>Телефон:</b> {html.escape(row['phone'])}"
         )
 
     lines.extend([
