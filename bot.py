@@ -49,7 +49,7 @@ def safe_send_to_admin(text, markup):
             return True
         except Exception as e:
             print(f"Попытка отправки админу {attempt} не удалась: {e}")
-            time.sleep(2) # Пауза перед повторной попыткой
+            time.sleep(2)
     return False
 
 # Безопасная функция публикации в канал с автоповтором
@@ -232,10 +232,9 @@ def callback_query(call):
 
 if __name__ == '__main__':
     print("Биржа фриланса запущена в стабильном режиме...")
-    # Бесконечный опрос с защищенными тайм-аутами соединения
     while True:
         try:
             bot.infinity_polling(timeout=60, long_polling_timeout=60, interval=1)
         except Exception as e:
-            print(дача_ошибки_ polling := f"Сбой соединения с Telegram: {e}. Переподключение через 5 секунд...")
+            print(f"Сбой соединения с Telegram: {e}. Переподключение через 5 секунд...")
             time.sleep(5)
