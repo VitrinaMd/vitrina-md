@@ -8,6 +8,12 @@ from datetime import datetime
 import telebot
 from telebot import types
 
+from news_module import (
+    init_news_db,
+    register_listing_published,
+    start_news_worker,
+)
+
 
 # ============================================================
 # НАСТРОЙКИ
@@ -1354,6 +1360,11 @@ def publish_listing(listing_id):
         target,
         message.message_id
     )
+
+    # Учитываем только реально опубликованное объявление.
+    # Повторный вызов publish_listing() не увеличит счётчик,
+    # потому что выше есть ранний return при published_message_id.
+    register_listing_published(DB_PATH)
 
     return message.message_id
 
@@ -2862,6 +2873,17 @@ if __name__ == "__main__":
     logger.info(
         "ADMIN_ID = %s",
         ADMIN_ID
+    )
+
+    # Новостной модуль работает фоновым потоком внутри этого же процесса.
+    # Второй infinity_polling() не создаётся.
+    init_news_db(DB_PATH)
+
+    start_news_worker(
+        bot=bot,
+        db_path=DB_PATH,
+        channel_target_getter=get_channel_target,
+        bot_username_getter=lambda: BOT_USERNAME,
     )
 
     bot.infinity_polling(
