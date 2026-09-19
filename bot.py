@@ -17,16 +17,15 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 
 ADMIN_ID = int(os.getenv("ADMIN_ID", "7419021481"))
 
-GROUP_ID_RAW = os.getenv(
-    "GROUP_ID",
-    "-1004362264263"
-).strip()
-
+GROUP_ID_RAW = os.getenv("GROUP_ID", "-1004362264263").strip()
 GROUP_ID = int(GROUP_ID_RAW) if GROUP_ID_RAW else None
 
-SUPPORT_USERNAME = os.getenv(
-    "SUPPORT_USERNAME",
-    ""
+CHANNEL_ID_RAW = os.getenv("CHANNEL_ID", "").strip()
+CHANNEL_ID = int(CHANNEL_ID_RAW) if CHANNEL_ID_RAW else None
+
+CHANNEL_USERNAME = os.getenv(
+    "CHANNEL_USERNAME",
+    "VFM_D"
 ).strip().lstrip("@")
 
 BOT_USERNAME = os.getenv(
@@ -34,15 +33,13 @@ BOT_USERNAME = os.getenv(
     ""
 ).strip().lstrip("@")
 
-CHANNEL_USERNAME = os.getenv(
-    "CHANNEL_USERNAME",
-    "vitrina_freelance_md"
+SUPPORT_USERNAME = os.getenv(
+    "SUPPORT_USERNAME",
+    ""
 ).strip().lstrip("@")
 
-DB_PATH = os.getenv(
-    "DB_PATH",
-    "vitrina.db"
-)
+DB_PATH = os.getenv("DB_PATH", "vitrina.db")
+
 
 if not BOT_TOKEN:
     raise RuntimeError(
@@ -51,7 +48,7 @@ if not BOT_TOKEN:
 
 
 # ============================================================
-# ЛОГИ
+# LOGGING
 # ============================================================
 
 logging.basicConfig(
@@ -63,7 +60,7 @@ logger = logging.getLogger(__name__)
 
 
 # ============================================================
-# TELEGRAM
+# BOT
 # ============================================================
 
 bot = telebot.TeleBot(
@@ -73,360 +70,273 @@ bot = telebot.TeleBot(
 
 
 # ============================================================
-# СОСТОЯНИЯ
+# STATES
 # ============================================================
 
 states = {}
-
-# Ответ администратора на обращение поддержки
 support_replies = {}
 
 
 # ============================================================
-# ТЕКСТЫ
+# TEXT
 # ============================================================
 
 TEXT = {
     "ru": {
-        "welcome":
+        "welcome": (
             "👋 <b>Добро пожаловать в Vitrina Freelance MD!</b>\n\n"
-            "Здесь заказчики находят специалистов, "
-            "а фрилансеры — новые заказы.",
+            "Здесь можно найти специалиста или предложить свои услуги."
+        ),
 
-        "choose": "Выберите действие:",
+        "choose_ad_type": "Выберите тип объявления:",
 
-        "order": "📝 Разместить заказ",
-        "service": "👨‍💻 Предложить свои услуги",
+        "need_specialist": "🔎 Мне нужен специалист",
+        "offer_service": "👨‍💻 Предлагаю свои услуги",
 
-        "submit_ad": "➕ Подать объявление",
+        "need_one_message": (
+            "📝 <b>Напишите объявление одним сообщением.</b>\n\n"
+            "Просто расскажите:\n"
+            "• что нужно сделать;\n"
+            "• город;\n"
+            "• бюджет;\n"
+            "• сроки;\n"
+            "• опыт или требования;\n"
+            "• дополнительную информацию.\n\n"
+            "Я автоматически определю категорию и основные данные."
+        ),
 
-        "find": "🔎 Найти",
-        "orders": "🔎 Найти заказ",
-        "services": "👨‍💻 Найти услуги",
+        "offer_one_message": (
+            "📝 <b>Напишите о своей услуге одним сообщением.</b>\n\n"
+            "Например:\n"
+            "• какую услугу предлагаете;\n"
+            "• город;\n"
+            "• цена;\n"
+            "• опыт;\n"
+            "• портфолио;\n"
+            "• дополнительные условия.\n\n"
+            "Я автоматически подготовлю объявление."
+        ),
 
+        "preview": "👀 <b>Предпросмотр объявления</b>\n\n",
+
+        "edit": "✏️ Изменить",
+        "add_photo": "📷 Добавить фото",
+        "delete_photo": "🗑 Удалить фото",
+        "publish": "✅ Отправить на модерацию",
+        "cancel": "❌ Отменить",
+
+        "choose_edit": "Что хотите изменить?",
+
+        "edit_title": "Введите новый заголовок:",
+        "edit_description": "Введите новое описание:",
+        "edit_budget": "Введите новый бюджет:",
+        "edit_city": "Введите новый город:",
+        "edit_deadline": "Введите новый срок:",
+        "edit_experience": "Введите информацию об опыте:",
+        "edit_portfolio": "Введите ссылку на портфолио:",
+        "edit_contact": (
+            "Введите Telegram username для связи.\n"
+            "Например: @username"
+        ),
+
+        "choose_category": "Выберите категорию:",
+
+        "send_photo": "Отправьте фотографию объявления.",
+        "photo_added": "📷 Фото добавлено.",
+        "photo_deleted": "Фото удалено.",
+
+        "cancelled": "❌ Создание объявления отменено.",
+
+        "sent_moderation": (
+            "✅ Объявление отправлено на модерацию.\n\n"
+            "После проверки оно появится в канале."
+        ),
+
+        "published": (
+            "📢 <b>Объявление опубликовано в канале!</b>"
+        ),
+
+        "rejected": (
+            "❌ Ваше объявление не прошло модерацию."
+        ),
+
+        "find": "🔎 Найти объявление",
         "mine": "📋 Мои объявления",
         "about": "ℹ️ О проекте",
         "support": "🆘 Поддержка",
-        "language": "🌐 Язык / Limba",
+        "language": "🌐 Язык",
 
-        "cancel": "❌ Отмена",
+        "submit_ad": "➕ Подать объявление",
 
-        "saved":
-            "✅ Объявление отправлено на модерацию.\n\n"
-            "После проверки администратора оно будет опубликовано.",
-
-        "rejected":
-            "❌ Ваше объявление было отклонено модератором.",
-
-        "approved":
-            "✅ Ваше объявление одобрено и опубликовано.",
-
-        "published":
-            "📢 Объявление опубликовано в группе/канале.",
-
-        "need_title":
-            "Введите <b>название</b> объявления:",
-
-        "need_category":
-            "Выберите <b>категорию</b>:",
-
-        "need_budget":
-            "Укажите <b>бюджет</b>.\n\n"
+        "search_prompt": (
+            "🔎 Напишите, что вы ищете.\n\n"
             "Например:\n"
-            "• 500 €\n"
-            "• 1000–1500 MDL\n"
-            "• По договорённости",
+            "<i>дизайнер</i>\n"
+            "<i>монтажник Кишинёв</i>\n"
+            "<i>создание сайта</i>"
+        ),
 
-        "need_price":
-            "Укажите <b>цену</b>.\n\n"
-            "Например:\n"
-            "• От 200 €\n"
-            "• 500 MDL/час\n"
-            "• По договорённости",
+        "nothing_found": "Ничего подходящего не найдено.",
 
-        "need_city":
-            "Укажите <b>город</b> или напишите <b>Удалённо</b>:",
+        "my_empty": "У вас пока нет объявлений.",
 
-        "need_deadline":
-            "Укажите <b>срок выполнения</b> "
-            "или напишите «не установлен»:",
+        "support_prompt": (
+            "🆘 Напишите свой вопрос одним сообщением."
+        ),
 
-        "need_description":
-            "Опишите задачу или свои услуги как можно подробнее:",
+        "support_sent": (
+            "✅ Сообщение отправлено администратору."
+        ),
 
-        "need_experience":
-            "Напишите о своём <b>опыте</b>:",
+        "admin_new": "🆕 <b>Новое объявление на модерации</b>",
 
-        "need_portfolio":
-            "Отправьте <b>ссылку на портфолио</b> "
-            "или его описание.\n\n"
-            "Можно также отправить фотографию.\n\n"
-            "Если портфолио нет — напишите «нет».",
+        "approve": "✅ Одобрить",
+        "reject": "❌ Отклонить",
 
-        "need_contact":
-            "Укажите, как с вами связаться.\n\n"
-            "Например: @username или номер телефона.",
+        "approved_admin": "✅ Опубликовано",
+        "rejected_admin": "❌ Отклонено",
 
-        "preview":
-            "🔎 <b>Проверьте объявление</b>\n\n",
+        "contact_seller": "💬 Связаться с продавцом",
 
-        "send":
-            "📤 Отправить на модерацию",
+        "submit_again": "➕ Подать объявление",
 
-        "edit":
-            "✏️ Изменить",
+        "contact_request": (
+            "📩 <b>Новый запрос по вашему объявлению!</b>\n\n"
+            "Пользователь хочет связаться с вами."
+        ),
 
-        "empty":
-            "Пока здесь ничего нет.",
+        "no_contact": (
+            "У вас не указан Telegram username.\n"
+            "Пожалуйста, укажите его для связи."
+        ),
 
-        "choose_language":
-            "Выберите язык:",
+        "invalid_photo": "Пожалуйста, отправьте фотографию.",
 
-        "no_results":
-            "По вашему запросу ничего не найдено.",
+        "invalid_text": "Пожалуйста, отправьте текст.",
 
-        "ask_search":
-            "Введите слово для поиска.\n\n"
-            "Например: дизайн, ремонт, перевод, "
-            "программист или название города.\n\n"
-            "Или нажмите «Все».",
+        "language_changed": "Язык изменён.",
 
-        "all": "📋 Все",
-
-        "my_title": "📋 <b>Ваши объявления</b>",
-
-        "invalid":
-            "Пожалуйста, введите текст или используйте кнопку.",
-
-        "contact_author":
-            "💬 Связаться с продавцом",
-
-        "comment":
-            "💬 Комментировать",
-
-        "choose_ad_type":
-            "📢 <b>Какое объявление вы хотите разместить?</b>",
-
-        "need_one_message":
-            "✍️ <b>Напишите всё об объявлении одним сообщением.</b>\n\n"
-            "Например:\n\n"
-            "<i>Ищу фотографа на свадьбу в Кишинёве "
-            "15 октября. Бюджет до 3000 леев. "
-            "Нужна съёмка с 14:00 до 22:00.</i>\n\n"
-            "Я автоматически попробую определить "
-            "категорию, город, бюджет и срок.",
-
-        "photo_optional":
-            "📷 Если хотите, после этого можно будет добавить фото.",
-
-        "edit_choose":
-            "✏️ <b>Что хотите изменить?</b>",
-
-        "add_photo":
-            "📷 Добавить фото",
-
-        "replace_photo":
-            "📷 Заменить фото",
-
-        "delete_photo":
-            "🗑 Удалить фото",
-
-        "no_value":
-            "Не указан",
-
-        "support_prompt":
-            "🆘 <b>Поддержка</b>\n\n"
-            "Напишите вашу проблему одним сообщением.\n\n"
-            "Если вопрос связан с объявлением, "
-            "можете указать его номер, например <b>#125</b>.\n\n"
-            "Сообщение будет передано администратору.",
-
-        "support_sent":
-            "✅ Ваше обращение отправлено администратору.\n\n"
-            "Ответ придёт сюда через бота.",
-
-        "support_answer":
-            "💬 <b>Ответ поддержки</b>\n\n",
-
-        "support_no_user":
-            "Пользователь недоступен.",
-
-        "form_closed":
-            "Форма уже закрыта."
+        "about_text": (
+            "ℹ️ <b>Vitrina Freelance MD</b>\n\n"
+            "Площадка для поиска специалистов и размещения услуг "
+            "в Молдове."
+        ),
     },
 
     "ro": {
-        "welcome":
-            "👋 <b>Bine ai venit pe Vitrina Freelance MD!</b>\n\n"
-            "Aici clienții găsesc specialiști, "
-            "iar freelancerii găsesc proiecte noi.",
+        "welcome": (
+            "👋 <b>Bun venit la Vitrina Freelance MD!</b>\n\n"
+            "Aici poți găsi un specialist sau îți poți oferi serviciile."
+        ),
 
-        "choose": "Alege o acțiune:",
+        "choose_ad_type": "Alege tipul anunțului:",
 
-        "order": "📝 Publică o comandă",
-        "service": "👨‍💻 Oferă servicii",
+        "need_specialist": "🔎 Am nevoie de un specialist",
+        "offer_service": "👨‍💻 Ofer servicii",
 
-        "submit_ad": "➕ Publică un anunț",
+        "need_one_message": (
+            "📝 <b>Scrie anunțul într-un singur mesaj.</b>\n\n"
+            "Spune ce trebuie făcut, orașul, bugetul și termenul."
+        ),
 
-        "find": "🔎 Caută",
-        "orders": "🔎 Caută comenzi",
-        "services": "👨‍💻 Caută servicii",
+        "offer_one_message": (
+            "📝 <b>Scrie despre serviciul tău într-un singur mesaj.</b>\n\n"
+            "Spune ce serviciu oferi, orașul, prețul și experiența."
+        ),
 
+        "preview": "👀 <b>Previzualizarea anunțului</b>\n\n",
+
+        "edit": "✏️ Modifică",
+        "add_photo": "📷 Adaugă fotografie",
+        "delete_photo": "🗑 Șterge fotografia",
+        "publish": "✅ Trimite pentru moderare",
+        "cancel": "❌ Anulează",
+
+        "choose_edit": "Ce dorești să modifici?",
+
+        "edit_title": "Introdu noul titlu:",
+        "edit_description": "Introdu noua descriere:",
+        "edit_budget": "Introdu noul buget:",
+        "edit_city": "Introdu noul oraș:",
+        "edit_deadline": "Introdu noul termen:",
+        "edit_experience": "Introdu experiența:",
+        "edit_portfolio": "Introdu linkul portofoliului:",
+        "edit_contact": "Introdu username-ul Telegram:",
+
+        "choose_category": "Alege categoria:",
+
+        "send_photo": "Trimite fotografia anunțului.",
+        "photo_added": "📷 Fotografia a fost adăugată.",
+        "photo_deleted": "Fotografia a fost ștearsă.",
+
+        "cancelled": "❌ Crearea anunțului a fost anulată.",
+
+        "sent_moderation": (
+            "✅ Anunțul a fost trimis pentru moderare."
+        ),
+
+        "published": (
+            "📢 <b>Anunțul a fost publicat pe canal!</b>"
+        ),
+
+        "rejected": "❌ Anunțul nu a trecut moderarea.",
+
+        "find": "🔎 Găsește un anunț",
         "mine": "📋 Anunțurile mele",
         "about": "ℹ️ Despre proiect",
         "support": "🆘 Suport",
-        "language": "🌐 Limbă / Язык",
+        "language": "🌐 Limbă",
 
-        "cancel": "❌ Anulează",
+        "submit_ad": "➕ Publică un anunț",
 
-        "saved":
-            "✅ Anunțul a fost trimis pentru moderare.\n\n"
-            "După verificare, acesta va fi publicat.",
+        "search_prompt": "🔎 Scrie ce cauți.",
 
-        "rejected":
-            "❌ Anunțul tău a fost respins de moderator.",
+        "nothing_found": "Nu au fost găsite rezultate.",
 
-        "approved":
-            "✅ Anunțul tău a fost aprobat și publicat.",
+        "my_empty": "Nu ai încă anunțuri.",
 
-        "published":
-            "📢 Anunțul a fost publicat în grup/canal.",
+        "support_prompt": "🆘 Scrie întrebarea ta.",
 
-        "need_title":
-            "Introdu <b>titlul</b> anunțului:",
+        "support_sent": "✅ Mesajul a fost trimis administratorului.",
 
-        "need_category":
-            "Alege <b>categoria</b>:",
+        "admin_new": "🆕 <b>Anunț nou pentru moderare</b>",
 
-        "need_budget":
-            "Indică <b>bugetul</b>.\n\n"
-            "De exemplu:\n"
-            "• 500 €\n"
-            "• 1000–1500 MDL\n"
-            "• Negociabil",
+        "approve": "✅ Aprobă",
+        "reject": "❌ Respinge",
 
-        "need_price":
-            "Indică <b>prețul</b>.\n\n"
-            "De exemplu:\n"
-            "• De la 200 €\n"
-            "• 500 MDL/oră\n"
-            "• Negociabil",
+        "approved_admin": "✅ Publicat",
+        "rejected_admin": "❌ Respins",
 
-        "need_city":
-            "Indică <b>orașul</b> sau scrie <b>La distanță</b>:",
+        "contact_seller": "💬 Contactează vânzătorul",
 
-        "need_deadline":
-            "Indică <b>termenul</b> sau scrie "
-            "„nu este stabilit”:",
+        "submit_again": "➕ Publică un anunț",
 
-        "need_description":
-            "Descrie proiectul sau serviciile tale "
-            "cât mai detaliat:",
+        "contact_request": (
+            "📩 <b>Cerere nouă pentru anunțul tău!</b>"
+        ),
 
-        "need_experience":
-            "Scrie despre <b>experiența</b> ta:",
+        "no_contact": (
+            "Nu ai username Telegram. "
+            "Introdu-l pentru contact."
+        ),
 
-        "need_portfolio":
-            "Trimite <b>linkul portofoliului</b> "
-            "sau o descriere.\n\n"
-            "Poți trimite și o fotografie.\n\n"
-            "Dacă nu ai portofoliu — scrie „nu”.",
+        "invalid_photo": "Trimite o fotografie.",
 
-        "need_contact":
-            "Indică modul de contact.\n\n"
-            "De exemplu: @username sau număr de telefon.",
+        "invalid_text": "Trimite un text.",
 
-        "preview":
-            "🔎 <b>Verifică anunțul</b>\n\n",
+        "language_changed": "Limba a fost schimbată.",
 
-        "send":
-            "📤 Trimite pentru moderare",
-
-        "edit":
-            "✏️ Modifică",
-
-        "empty":
-            "Încă nu există anunțuri aici.",
-
-        "choose_language":
-            "Alege limba:",
-
-        "no_results":
-            "Nu au fost găsite rezultate.",
-
-        "ask_search":
-            "Introdu un cuvânt pentru căutare.\n\n"
-            "De exemplu: design, reparații, traduceri, "
-            "programator sau un oraș.\n\n"
-            "Sau apasă „Toate”.",
-
-        "all": "📋 Toate",
-
-        "my_title": "📋 <b>Anunțurile tale</b>",
-
-        "invalid":
-            "Te rugăm să introduci text sau să folosești butonul.",
-
-        "contact_author":
-            "💬 Contactează vânzătorul",
-
-        "comment":
-            "💬 Comentează",
-
-        "choose_ad_type":
-            "📢 <b>Ce tip de anunț vrei să publici?</b>",
-
-        "need_one_message":
-            "✍️ <b>Scrie totul despre anunț într-un singur mesaj.</b>\n\n"
-            "De exemplu:\n\n"
-            "<i>Caut fotograf pentru nuntă în Chișinău "
-            "pe 15 octombrie. Buget până la 3000 lei.</i>\n\n"
-            "Voi încerca automat să identific "
-            "categoria, orașul, bugetul și termenul.",
-
-        "photo_optional":
-            "📷 După aceea poți adăuga o fotografie.",
-
-        "edit_choose":
-            "✏️ <b>Ce vrei să modifici?</b>",
-
-        "add_photo":
-            "📷 Adaugă fotografie",
-
-        "replace_photo":
-            "📷 Înlocuiește fotografia",
-
-        "delete_photo":
-            "🗑 Șterge fotografia",
-
-        "no_value":
-            "Nu este indicat",
-
-        "support_prompt":
-            "🆘 <b>Suport</b>\n\n"
-            "Scrie problema într-un singur mesaj.\n\n"
-            "Dacă este legată de un anunț, "
-            "poți indica numărul, de exemplu <b>#125</b>.\n\n"
-            "Mesajul va fi transmis administratorului.",
-
-        "support_sent":
-            "✅ Mesajul tău a fost transmis administratorului.\n\n"
-            "Răspunsul va veni aici prin bot.",
-
-        "support_answer":
-            "💬 <b>Răspunsul suportului</b>\n\n",
-
-        "support_no_user":
-            "Utilizatorul nu este disponibil.",
-
-        "form_closed":
-            "Formularul este deja închis."
+        "about_text": (
+            "ℹ️ <b>Vitrina Freelance MD</b>\n\n"
+            "Platformă pentru găsirea specialiștilor și "
+            "promovarea serviciilor în Moldova."
+        ),
     }
 }
 
 
 # ============================================================
-# КАТЕГОРИИ
+# CATEGORIES
 # ============================================================
 
 CATEGORIES = [
@@ -442,82 +352,143 @@ CATEGORIES = [
     ("other", "📦 Другое / Altele"),
 ]
 
+
 CATEGORY_KEYWORDS = {
     "design": [
-        "дизайн", "designer", "design", "логотип", "лого",
-        "баннер", "банер", "визитк", "фирменн", "ui", "ux",
-        "photoshop", "figma", "illustrator"
+        "дизайн",
+        "дизайнер",
+        "логотип",
+        "баннер",
+        "банер",
+        "визитка",
+        "макет",
+        "design",
+        "designer",
+        "logo",
     ],
+
     "programming": [
-        "программист", "программирование", "сайт", "бот",
-        "telegram bot", "python", "php", "javascript",
-        "js", "html", "css", "it", "разработчик", "developer"
+        "программист",
+        "программирование",
+        "сайт",
+        "сайта",
+        "бот",
+        "telegram bot",
+        "python",
+        "код",
+        "разработка",
+        "developer",
+        "programare",
+        "programator",
     ],
+
     "marketing": [
-        "маркетинг", "реклама", "таргет", "smm", "seo",
-        "продвижен", "instagram", "facebook", "контент"
+        "маркетинг",
+        "реклама",
+        "таргет",
+        "smm",
+        "seo",
+        "продвижение",
+        "рекламная",
+        "marketing",
     ],
+
     "photo_video": [
-        "фотограф", "фото", "фотосъем", "фотосъём",
-        "видео", "видеограф", "монтаж", "свадебн"
+        "фото",
+        "фотограф",
+        "видео",
+        "видеограф",
+        "монтаж видео",
+        "съемка",
+        "съёмка",
+        "photo",
+        "video",
     ],
+
     "text": [
-        "текст", "копирайт", "копирайтер", "статья",
-        "описание", "рерайт", "пост", "писать"
+        "копирайтинг",
+        "копирайтер",
+        "текст",
+        "статья",
+        "пост",
+        "контент",
+        "редактор",
+        "тексты",
     ],
+
     "translation": [
-        "перевод", "перевести", "переводчик", "translation",
-        "română", "румын", "русский", "английский", "англ"
+        "перевод",
+        "перевести",
+        "переводчик",
+        "русский",
+        "румынский",
+        "английский",
+        "украинский",
+        "translation",
+        "traducere",
     ],
+
     "construction": [
-        "ремонт", "строитель", "строительство", "маляр",
-        "штукатур", "плитк", "электрик", "сантехник",
-        "гипсокартон", "бетон", "отделк"
+        "ремонт",
+        "строитель",
+        "строительство",
+        "маляр",
+        "штукатур",
+        "плиточник",
+        "электрик",
+        "сантехник",
+        "монтажник",
+        "гипсокартон",
+        "construcții",
+        "zugrav",
     ],
+
     "transport": [
-        "перевоз", "водитель", "транспорт", "доставка",
-        "груз", "такси", "машина", "авто", "курьер"
+        "водитель",
+        "перевозка",
+        "такси",
+        "доставка",
+        "груз",
+        "машина",
+        "автомобиль",
+        "курьер",
+        "transport",
+        "șofer",
     ],
+
     "beauty": [
-        "парикмах", "маникюр", "педикюр", "макияж",
-        "визаж", "косметолог", "бров", "ресниц", "beauty"
-    ]
+        "парикмахер",
+        "маникюр",
+        "педикюр",
+        "визажист",
+        "косметолог",
+        "бровист",
+        "ресницы",
+        "красота",
+        "beauty",
+    ],
 }
 
+
 CITY_ALIASES = {
-    "Кишинёв": [
-        "кишинев", "кишинёв", "chisinau", "chișinău"
-    ],
-    "Бельцы": [
-        "бельцы", "бэлць", "balti", "bălți"
-    ],
-    "Бендеры": [
-        "бендер", "bender"
-    ],
-    "Тирасполь": [
-        "тирас", "tiraspol"
-    ],
-    "Комрат": [
-        "комрат", "comrat"
-    ],
-    "Кагул": [
-        "кагул", "cahul"
-    ],
-    "Оргеев": [
-        "оргеев", "orhei"
-    ],
-    "Сороки": [
-        "сороки", "soroca"
-    ],
-    "Унгены": [
-        "унген", "ungheni"
-    ],
-    "Дрокия": [
-        "дрок", "drochia"
-    ],
-    "Рыбница": [
-        "рыбниц", "rybnitsa", "rybnița"
-    ]
+    "кишинев": "Кишинёв",
+    "кишинёв": "Кишинёв",
+    "chisinau": "Chișinău",
+    "chișinău": "Chișinău",
+    "бэлць": "Бельцы",
+    "бельцы": "Бельцы",
+    "balti": "Bălți",
+    "бендеры": "Бендеры",
+    "тирасполь": "Тирасполь",
+    "tiraspol": "Tiraspol",
+    "комрат": "Комрат",
+    "comrat": "Comrat",
+    "кагул": "Кагул",
+    "cahul": "Cahul",
+    "оргеев": "Оргеев",
+    "orhei": "Orhei",
+    "сороки": "Сороки",
+    "soroca": "Soroca",
 }
 
 
@@ -532,348 +503,317 @@ def get_db():
 
 
 def init_db():
-    with get_db() as conn:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                user_id INTEGER PRIMARY KEY,
-                first_name TEXT NOT NULL,
-                username TEXT,
-                language TEXT NOT NULL DEFAULT 'ru',
-                created_at TEXT NOT NULL
-            )
-        """)
+    conn = get_db()
+    cur = conn.cursor()
 
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS listings (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                kind TEXT NOT NULL,
-                title TEXT NOT NULL,
-                category TEXT NOT NULL,
-                budget TEXT,
-                city TEXT,
-                deadline TEXT,
-                description TEXT NOT NULL,
-                experience TEXT,
-                portfolio TEXT,
-                photo_id TEXT,
-                contact TEXT,
-                status TEXT NOT NULL DEFAULT 'pending',
-                created_at TEXT NOT NULL,
-                published_message_id INTEGER
-            )
-        """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            user_id INTEGER PRIMARY KEY,
+            first_name TEXT,
+            username TEXT,
+            language TEXT DEFAULT 'ru',
+            created_at TEXT
+        )
+    """)
 
-        conn.commit()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS listings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            kind TEXT NOT NULL,
+            title TEXT,
+            category TEXT,
+            budget TEXT,
+            city TEXT,
+            deadline TEXT,
+            description TEXT,
+            experience TEXT,
+            portfolio TEXT,
+            photo_id TEXT,
+            contact TEXT,
+            status TEXT DEFAULT 'pending',
+            created_at TEXT,
+            published_message_id INTEGER
+        )
+    """)
+
+    conn.commit()
+    conn.close()
 
 
 def current_time():
-    return datetime.utcnow().strftime(
-        "%Y-%m-%d %H:%M:%S"
-    )
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
 # ============================================================
-# USERS
+# USERS / LANGUAGE
 # ============================================================
-
-def detect_language(user):
-    language = (user.language_code or "").lower()
-
-    if language.startswith("ro"):
-        return "ro"
-
-    return "ru"
-
 
 def save_user(user):
-    language = detect_language(user)
+    conn = get_db()
 
-    with get_db() as conn:
-        conn.execute("""
+    username = user.username or ""
+    first_name = user.first_name or ""
+
+    existing = conn.execute(
+        "SELECT user_id FROM users WHERE user_id = ?",
+        (user.id,)
+    ).fetchone()
+
+    if existing:
+        conn.execute(
+            """
+            UPDATE users
+            SET first_name = ?, username = ?
+            WHERE user_id = ?
+            """,
+            (first_name, username, user.id)
+        )
+    else:
+        language = "ru"
+
+        if user.language_code:
+            if user.language_code.lower().startswith("ro"):
+                language = "ro"
+
+        conn.execute(
+            """
             INSERT INTO users
+            (user_id, first_name, username, language, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
             (
-                user_id,
+                user.id,
                 first_name,
                 username,
                 language,
-                created_at
+                current_time()
             )
-            VALUES (?, ?, ?, ?, ?)
+        )
 
-            ON CONFLICT(user_id)
-
-            DO UPDATE SET
-                first_name = excluded.first_name,
-                username = excluded.username
-        """, (
-            user.id,
-            user.first_name or "",
-            user.username,
-            language,
-            current_time()
-        ))
-
-        conn.commit()
+    conn.commit()
+    conn.close()
 
 
 def get_language(user_id):
-    with get_db() as conn:
-        row = conn.execute(
-            "SELECT language FROM users WHERE user_id=?",
-            (user_id,)
-        ).fetchone()
+    conn = get_db()
 
-    if row:
+    row = conn.execute(
+        "SELECT language FROM users WHERE user_id = ?",
+        (user_id,)
+    ).fetchone()
+
+    conn.close()
+
+    if row and row["language"] in TEXT:
         return row["language"]
 
     return "ru"
 
 
 def set_language(user_id, language):
-    if language not in ("ru", "ro"):
+    if language not in TEXT:
         return
 
-    with get_db() as conn:
-        conn.execute(
-            "UPDATE users SET language=? WHERE user_id=?",
-            (language, user_id)
-        )
-        conn.commit()
+    conn = get_db()
+
+    conn.execute(
+        "UPDATE users SET language = ? WHERE user_id = ?",
+        (language, user_id)
+    )
+
+    conn.commit()
+    conn.close()
 
 
 def tr(user_id, key):
     language = get_language(user_id)
-
-    return TEXT[language].get(
+    return TEXT.get(language, TEXT["ru"]).get(
         key,
         TEXT["ru"].get(key, key)
     )
 
 
 # ============================================================
-# HELPERS
+# MAIN MENU
 # ============================================================
 
-def escape(value):
-    return html.escape(str(value or ""))
-
-
 def main_menu(user_id):
-    keyboard = types.ReplyKeyboardMarkup(
-        resize_keyboard=True,
-        row_width=2
+    markup = types.ReplyKeyboardMarkup(
+        resize_keyboard=True
     )
 
-    keyboard.add(
-        types.KeyboardButton(
-            tr(user_id, "submit_ad")
-        )
+    markup.row(
+        types.KeyboardButton(tr(user_id, "submit_ad"))
     )
 
-    keyboard.add(
-        types.KeyboardButton(
-            tr(user_id, "order")
-        ),
-        types.KeyboardButton(
-            tr(user_id, "service")
-        )
+    markup.row(
+        types.KeyboardButton(tr(user_id, "find")),
+        types.KeyboardButton(tr(user_id, "mine"))
     )
 
-    keyboard.add(
-        types.KeyboardButton(
-            tr(user_id, "find")
-        ),
-        types.KeyboardButton(
-            tr(user_id, "mine")
-        )
+    markup.row(
+        types.KeyboardButton(tr(user_id, "about")),
+        types.KeyboardButton(tr(user_id, "support"))
     )
 
-    keyboard.add(
-        types.KeyboardButton(
-            tr(user_id, "about")
-        ),
-        types.KeyboardButton(
-            tr(user_id, "support")
-        )
+    markup.row(
+        types.KeyboardButton(tr(user_id, "language"))
     )
 
-    keyboard.add(
-        types.KeyboardButton(
-            tr(user_id, "language")
-        )
-    )
-
-    return keyboard
+    return markup
 
 
 def cancel_keyboard(user_id):
-    keyboard = types.InlineKeyboardMarkup()
-
-    keyboard.add(
-        types.InlineKeyboardButton(
-            tr(user_id, "cancel"),
-            callback_data="cancel_form"
-        )
+    markup = types.ReplyKeyboardMarkup(
+        resize_keyboard=True,
+        one_time_keyboard=True
     )
 
-    return keyboard
-
-
-def category_keyboard(kind):
-    keyboard = types.InlineKeyboardMarkup(row_width=2)
-
-    prefix = "order" if kind == "order" else "service"
-
-    for key, title in CATEGORIES:
-        keyboard.add(
-            types.InlineKeyboardButton(
-                title,
-                callback_data=f"{prefix}_category:{key}"
-            )
-        )
-
-    return keyboard
-
-
-def find_keyboard(user_id):
-    keyboard = types.InlineKeyboardMarkup(row_width=1)
-
-    keyboard.add(
-        types.InlineKeyboardButton(
-            tr(user_id, "orders"),
-            callback_data="find_orders"
-        )
+    markup.add(
+        types.KeyboardButton(tr(user_id, "cancel"))
     )
 
-    keyboard.add(
-        types.InlineKeyboardButton(
-            tr(user_id, "services"),
-            callback_data="find_services"
-        )
-    )
-
-    return keyboard
+    return markup
 
 
 # ============================================================
-# НОВЫЙ РЕЖИМ ПОДАЧИ ОБЪЯВЛЕНИЯ
+# INLINE KEYBOARDS
 # ============================================================
 
-def ad_type_keyboard():
-    keyboard = types.InlineKeyboardMarkup(row_width=1)
+def ad_type_keyboard(user_id):
+    markup = types.InlineKeyboardMarkup()
 
-    keyboard.add(
+    markup.row(
         types.InlineKeyboardButton(
-            "🔴 Нужен специалист",
+            tr(user_id, "need_specialist"),
             callback_data="quick_kind:order"
         )
     )
 
-    keyboard.add(
+    markup.row(
         types.InlineKeyboardButton(
-            "🟢 Предлагаю услугу",
+            tr(user_id, "offer_service"),
             callback_data="quick_kind:service"
         )
     )
 
-    return keyboard
+    return markup
 
 
-def edit_keyboard(user_id):
-    keyboard = types.InlineKeyboardMarkup(row_width=2)
+def category_keyboard():
+    markup = types.InlineKeyboardMarkup()
 
-    fields = [
-        ("title", "📝 Название"),
-        ("category", "🏷 Категория"),
-        ("budget", "💰 Бюджет"),
-        ("city", "📍 Город"),
-        ("deadline", "📅 Срок"),
-        ("description", "📄 Описание"),
-        ("experience", "⭐ Опыт"),
-        ("portfolio", "🔗 Портфолио"),
-        ("contact", "📞 Контакт"),
-    ]
+    row = []
 
-    for key, label in fields:
-        keyboard.add(
+    for key, label in CATEGORIES:
+        row.append(
             types.InlineKeyboardButton(
                 label,
-                callback_data=f"edit_field:{key}"
+                callback_data=f"category:{key}"
             )
         )
 
-    data = states.get(user_id, {}).get("data", {})
+        if len(row) == 2:
+            markup.row(*row)
+            row = []
 
-    if data.get("photo_id"):
-        keyboard.add(
-            types.InlineKeyboardButton(
-                tr(user_id, "replace_photo"),
-                callback_data="edit_field:photo"
-            ),
+    if row:
+        markup.row(*row)
+
+    return markup
+
+
+def preview_keyboard(user_id, has_photo=False):
+    markup = types.InlineKeyboardMarkup()
+
+    markup.row(
+        types.InlineKeyboardButton(
+            tr(user_id, "edit"),
+            callback_data="edit_menu"
+        )
+    )
+
+    if has_photo:
+        markup.row(
             types.InlineKeyboardButton(
                 tr(user_id, "delete_photo"),
                 callback_data="delete_photo"
             )
         )
     else:
-        keyboard.add(
+        markup.row(
             types.InlineKeyboardButton(
                 tr(user_id, "add_photo"),
-                callback_data="edit_field:photo"
+                callback_data="add_photo"
             )
         )
 
-    keyboard.add(
+    markup.row(
+        types.InlineKeyboardButton(
+            tr(user_id, "publish"),
+            callback_data="submit_listing"
+        )
+    )
+
+    markup.row(
         types.InlineKeyboardButton(
             tr(user_id, "cancel"),
             callback_data="cancel_form"
         )
     )
 
-    return keyboard
+    return markup
 
 
-def preview_keyboard(user_id):
-    keyboard = types.InlineKeyboardMarkup(row_width=1)
+def edit_keyboard(user_id):
+    markup = types.InlineKeyboardMarkup()
 
-    keyboard.add(
-        types.InlineKeyboardButton(
-            tr(user_id, "send"),
-            callback_data="submit_form"
-        )
-    )
+    fields = [
+        ("title", "Заголовок"),
+        ("description", "Описание"),
+        ("category", "Категория"),
+        ("budget", "Бюджет"),
+        ("city", "Город"),
+        ("deadline", "Срок"),
+        ("experience", "Опыт"),
+        ("portfolio", "Портфолио"),
+        ("contact", "Контакт"),
+    ]
 
-    keyboard.add(
-        types.InlineKeyboardButton(
-            tr(user_id, "edit"),
-            callback_data="edit_form"
-        )
-    )
-
-    if states.get(user_id, {}).get("data", {}).get("photo_id"):
-        keyboard.add(
+    for key, label in fields:
+        markup.add(
             types.InlineKeyboardButton(
-                tr(user_id, "replace_photo"),
-                callback_data="edit_field:photo"
-            )
-        )
-    else:
-        keyboard.add(
-            types.InlineKeyboardButton(
-                tr(user_id, "add_photo"),
-                callback_data="edit_field:photo"
+                label,
+                callback_data=f"edit_field:{key}"
             )
         )
 
-    keyboard.add(
+    markup.add(
         types.InlineKeyboardButton(
-            tr(user_id, "cancel"),
-            callback_data="cancel_form"
+            "↩️ Назад",
+            callback_data="back_preview"
         )
     )
 
-    return keyboard
+    return markup
+
+
+def admin_keyboard(listing_id):
+    markup = types.InlineKeyboardMarkup()
+
+    markup.row(
+        types.InlineKeyboardButton(
+            "✅ Одобрить",
+            callback_data=f"admin:approve:{listing_id}"
+        ),
+        types.InlineKeyboardButton(
+            "❌ Отклонить",
+            callback_data=f"admin:reject:{listing_id}"
+        )
+    )
+
+    return markup
 
 
 # ============================================================
@@ -881,7 +821,7 @@ def preview_keyboard(user_id):
 # ============================================================
 
 def detect_category(text):
-    lower = text.lower()
+    text_lower = text.lower()
 
     scores = {}
 
@@ -889,7 +829,7 @@ def detect_category(text):
         score = 0
 
         for keyword in keywords:
-            if keyword.lower() in lower:
+            if keyword.lower() in text_lower:
                 score += 1
 
         if score:
@@ -905,361 +845,521 @@ def detect_category(text):
 
 
 def category_label(category):
-    return dict(CATEGORIES).get(
-        category,
-        "📦 Другое / Altele"
-    )
+    for key, label in CATEGORIES:
+        if key == category:
+            return label
+
+    return category
 
 
 def extract_city(text):
-    lower = text.lower()
+    text_lower = text.lower()
 
-    for city, aliases in CITY_ALIASES.items():
-        for alias in aliases:
-            if alias.lower() in lower:
-                return city
+    for alias, city in CITY_ALIASES.items():
+        if re.search(
+            rf"(?<!\w){re.escape(alias)}(?!\w)",
+            text_lower,
+            flags=re.IGNORECASE
+        ):
+            return city
 
-    if re.search(
-        r"\b(удал[её]нно|удал[её]нная работа|remote|online|онлайн)\b",
-        lower
-    ):
-        return "Удалённо"
-
-    return ""
-
-
-def extract_budget(text):
-    # Сначала ищем суммы с валютой.
     patterns = [
-        r"(?:бюджет|цена|стоимость|оплата|до|от)\s*"
-        r"([0-9][0-9\s.,-]{0,20})\s*"
-        r"(€|евро|eur|ле[йи]|lei|mdl|\$|usd|доллар)",
-        r"([0-9][0-9\s.,-]{0,20})\s*"
-        r"(€|евро|eur|ле[йи]|lei|mdl|\$|usd|доллар)"
+        r"(?:город|г\.?|or[aș]?|oras)\s*[:\-]?\s*([A-Za-zА-Яа-яЁёȘșȚțĂăÎî\s\-]{3,30})",
     ]
 
     for pattern in patterns:
         match = re.search(
             pattern,
             text,
-            re.IGNORECASE
+            flags=re.IGNORECASE
+        )
+
+        if match:
+            return match.group(1).strip()
+
+    return ""
+
+
+def extract_budget(text):
+    patterns = [
+        r"(?:бюджет|цена|стоимость|оплата)\s*(?:до|от)?\s*([0-9][0-9\s.,]*)\s*(€|евро|лей|леев|mdl|lei|\$|usd)?",
+        r"([0-9][0-9\s.,]*)\s*(€|евро|лей|леев|mdl|lei|\$|usd)",
+    ]
+
+    for pattern in patterns:
+        match = re.search(
+            pattern,
+            text,
+            flags=re.IGNORECASE
         )
 
         if match:
             amount = re.sub(
                 r"\s+",
                 " ",
-                match.group(1)
-            ).strip()
+                match.group(1).strip()
+            )
 
-            currency = match.group(2)
+            currency = (
+                match.group(2).strip()
+                if match.group(2)
+                else ""
+            )
 
-            return f"{amount} {currency}"
+            if currency:
+                return f"{amount} {currency}"
 
-    # Бюджет без валюты
-    match = re.search(
-        r"(?:бюджет|цена|стоимость|оплата)\s*"
-        r"(?:до|от)?\s*"
-        r"([0-9][0-9\s.,-]{0,20})",
-        text,
-        re.IGNORECASE
-    )
-
-    if match:
-        value = match.group(1).strip()
-
-        # Не считаем датой.
-        if not re.fullmatch(
-            r"\d{1,2}[./-]\d{1,2}(?:[./-]\d{2,4})?",
-            value
-        ):
-            return value
-
-    if re.search(
-        r"\b(по договорённости|по договоренности|договорная|negociabil)\b",
-        text,
-        re.IGNORECASE
-    ):
-        return "По договорённости"
+            return amount
 
     return ""
 
 
 def extract_deadline(text):
-    lower = text.lower()
+    # ВАЖНО:
+    # отдельно слово "до" НЕ считаем дедлайном,
+    # иначе "бюджет до 3000 леев" ошибочно станет сроком.
 
-    explicit = re.search(
-        r"(?:срок|до|на|дата|deadline)\s*[:\-]?\s*"
-        r"([0-9]{1,2}(?:[./-][0-9]{1,2})?"
-        r"(?:[./-][0-9]{2,4})?"
-        r"(?:\s+(?:января|февраля|марта|апреля|мая|июня|"
-        r"июля|августа|сентября|октября|ноября|декабря|"
-        r"октябрь|ноябрь|декабрь|октября))?)",
-        lower
-    )
-
-    if explicit:
-        return explicit.group(1).strip()
-
-    phrases = [
-        "сегодня",
-        "завтра",
-        "послезавтра",
-        "на этой неделе",
-        "на следующей неделе",
-        "в течение недели",
-        "в течение месяца",
-        "срочно",
-        "как можно скорее",
-        "срочный заказ"
-    ]
-
-    for phrase in phrases:
-        if phrase in lower:
-            return phrase
-
-    # Дата вроде 15 октября
-    months = (
-        "января|февраля|марта|апреля|мая|июня|июля|"
-        "августа|сентября|октября|ноября|декабря"
-    )
-
-    match = re.search(
-        rf"\b([0-9]{{1,2}}\s+(?:{months}))\b",
-        lower
-    )
-
-    if match:
-        return match.group(1)
-
-    return ""
-
-
-def extract_experience(text):
     patterns = [
-        r"([0-9]+)\s*(?:лет|года|год)\s*(?:опыта|опыт)",
-        r"(?:опыт|стаж)\s*[:\-]?\s*([^.!\n]{1,100})"
+        r"(?:срок|сроки|дедлайн|deadline|дата)\s*[:\-]?\s*([^,\n.!?]{2,50})",
+        r"(?:за|в течение)\s+([0-9]+\s*(?:дн(?:ей|я)?|день|недел(?:ю|и)?|месяц(?:а|ев)?))",
+        r"(?:до|к)\s+([0-9]{1,2}[./-][0-9]{1,2}(?:[./-][0-9]{2,4})?)",
+        r"(?:до|к)\s+([0-9]{1,2}\s+(?:января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря))",
     ]
 
     for pattern in patterns:
         match = re.search(
             pattern,
             text,
-            re.IGNORECASE
+            flags=re.IGNORECASE
         )
 
         if match:
-            return match.group(0).strip()[:300]
+            value = match.group(1).strip()
+
+            if len(value) > 60:
+                value = value[:60]
+
+            return value
+
+    return ""
+
+
+def extract_experience(text):
+    patterns = [
+        r"(?:опыт|стаж)\s*[:\-]?\s*([^,\n.!?]{2,60})",
+        r"([0-9]+)\s*(?:лет|года|год)\s*(?:опыта|стажа)",
+    ]
+
+    for pattern in patterns:
+        match = re.search(
+            pattern,
+            text,
+            flags=re.IGNORECASE
+        )
+
+        if match:
+            return match.group(1).strip()
 
     return ""
 
 
 def extract_portfolio(text):
     match = re.search(
-        r"(https?://[^\s<>]+)",
+        r"(https?://[^\s]+)",
         text,
-        re.IGNORECASE
+        flags=re.IGNORECASE
     )
 
     if match:
-        return match.group(1).strip()[:500]
+        return match.group(1).rstrip(".,)")
 
     return ""
 
 
 def extract_contact(text, user):
-    username = user.username
-
-    if username:
-        return f"@{username}"
-
     match = re.search(
-        r"(?:телефон|тел|контакт|whatsapp|viber)\s*[:\-]?\s*"
-        r"(\+?[0-9][0-9\s()\-]{6,20})",
-        text,
-        re.IGNORECASE
-    )
-
-    if match:
-        return match.group(1).strip()[:100]
-
-    match = re.search(
-        r"(?<!\w)(\+373\s?[0-9]{6,8})(?!\w)",
+        r"(?<!\w)@([A-Za-z0-9_]{4,32})",
         text
     )
 
     if match:
-        return match.group(1).strip()
+        return f"@{match.group(1)}"
+
+    if user.username:
+        return f"@{user.username}"
 
     return ""
 
 
 def make_title(text, kind):
     clean = re.sub(
-        r"https?://\S+",
-        "",
-        text
+        r"\s+",
+        " ",
+        text.strip()
     )
 
     clean = re.sub(
-        r"\s+",
-        " ",
-        clean
-    ).strip()
+        r"^(ищу|нужен|нужна|нужно|ищем|предлагаю|оказываю|предоставляю)\s+",
+        "",
+        clean,
+        flags=re.IGNORECASE
+    )
 
-    # Если текст начинается с "Ищу..." — превращаем в более
-    # короткий заголовок.
-    replacements = [
-        (r"^ищу\s+", ""),
-        (r"^нужен\s+", ""),
-        (r"^нужна\s+", ""),
-        (r"^нужно\s+", ""),
-        (r"^предлагаю\s+", ""),
-        (r"^оказываю\s+", ""),
-        (r"^предлагаю услуги\s+", ""),
-        (r"^caut\s+", ""),
-        (r"^ofer\s+", "")
-    ]
-
-    title = clean
-
-    for pattern, replacement in replacements:
-        title = re.sub(
-            pattern,
-            replacement,
-            title,
-            flags=re.IGNORECASE
-        )
-
-    # Берём первое предложение.
-    title = re.split(
+    first_sentence = re.split(
         r"[.!?\n]",
-        title
+        clean
     )[0].strip()
 
-    if not title:
-        title = (
-            "Нужен специалист"
-            if kind == "order"
-            else
-            "Предлагаю услугу"
-        )
+    if not first_sentence:
+        first_sentence = clean
 
-    return title[:120]
+    if len(first_sentence) > 90:
+        first_sentence = first_sentence[:87] + "..."
+
+    return first_sentence
 
 
-def parse_quick_ad(text, kind, user):
-    text = text.strip()
-
+def parse_quick_ad(text, user, kind):
     category = detect_category(text)
-    city = extract_city(text)
-    budget = extract_budget(text)
-    deadline = extract_deadline(text)
-    experience = extract_experience(text)
-    portfolio = extract_portfolio(text)
-    contact = extract_contact(text, user)
-
-    title = make_title(
-        text,
-        kind
-    )
 
     return {
         "kind": kind,
-        "title": title,
+        "title": make_title(text, kind),
         "category": category,
-        "category_label": category_label(category),
-        "budget": budget,
-        "city": city,
-        "deadline": deadline,
-        "description": text[:3000],
-        "experience": experience,
-        "portfolio": portfolio,
+        "budget": extract_budget(text),
+        "city": extract_city(text),
+        "deadline": extract_deadline(text),
+        "description": text.strip(),
+        "experience": extract_experience(text),
+        "portfolio": extract_portfolio(text),
         "photo_id": None,
-        "contact": contact
+        "contact": extract_contact(text, user),
     }
 
 
 # ============================================================
-# PREVIEW
+# FORMATTING
 # ============================================================
 
-def preview_text(data):
+def preview_text(user_id, data):
     kind_text = (
-        "📝 Заказ"
-        if data["kind"] == "order"
-        else
-        "👨‍💻 Услуга"
+        "🔎 Нужен специалист"
+        if data.get("kind") == "order"
+        else "👨‍💻 Предлагаю услугу"
     )
 
-    result = [
-        f"<b>{escape(data.get('title'))}</b>",
-        f"📌 Тип: {kind_text}",
-        f"🏷 Категория: "
-        f"{escape(data.get('category_label'))}"
+    category = data.get("category") or "other"
+
+    lines = [
+        tr(user_id, "preview"),
+        f"📌 <b>{html.escape(data.get('title') or 'Без названия')}</b>",
+        "",
+        kind_text,
+        f"📂 <b>Категория:</b> {html.escape(category_label(category))}",
     ]
 
-    result.append(
-        f"💰 "
-        f"{'Бюджет' if data['kind'] == 'order' else 'Цена'}: "
-        f"{escape(data.get('budget') or 'Не указан')}"
-    )
+    if data.get("budget"):
+        lines.append(
+            f"💰 <b>Бюджет:</b> {html.escape(data['budget'])}"
+        )
 
-    result.append(
-        f"📍 {escape(data.get('city') or 'Не указан')}"
-    )
+    if data.get("city"):
+        lines.append(
+            f"📍 <b>Город:</b> {html.escape(data['city'])}"
+        )
 
-    result.append(
-        f"📅 Срок: "
-        f"{escape(data.get('deadline') or 'Не указан')}"
-    )
+    if data.get("deadline"):
+        lines.append(
+            f"⏱ <b>Срок:</b> {html.escape(data['deadline'])}"
+        )
 
     if data.get("experience"):
-        result.append(
-            f"⭐ Опыт: "
-            f"{escape(data['experience'])}"
+        lines.append(
+            f"⭐ <b>Опыт:</b> {html.escape(data['experience'])}"
         )
 
-    result.append(
-        f"\n📝 {escape(data.get('description'))}"
-    )
+    lines.extend([
+        "",
+        "📝 <b>Описание:</b>",
+        html.escape(data.get("description") or ""),
+    ])
 
     if data.get("portfolio"):
-        result.append(
-            f"\n🔗 Портфолио: "
-            f"{escape(data['portfolio'])}"
-        )
+        lines.extend([
+            "",
+            f"🔗 <b>Портфолио:</b> "
+            f"{html.escape(data['portfolio'])}"
+        ])
 
     if data.get("contact"):
-        result.append(
-            f"\n📞 Контакт: "
-            f"{escape(data['contact'])}"
-        )
+        lines.extend([
+            "",
+            f"👤 <b>Контакт:</b> "
+            f"{html.escape(data['contact'])}"
+        ])
 
-    if data.get("photo_id"):
-        result.append(
-            "\n📷 Фото: добавлено"
-        )
-
-    return "\n".join(result)
+    return "\n".join(lines)
 
 
-def show_preview(chat_id, user_id):
-    if user_id not in states:
-        return
-
-    data = states[user_id]["data"]
-
-    bot.send_message(
-        chat_id,
-        tr(user_id, "preview")
-        + preview_text(data),
-        reply_markup=preview_keyboard(user_id)
+def render_public_text(row, description=None):
+    kind_text = (
+        "🔎 Ищу специалиста"
+        if row["kind"] == "order"
+        else "👨‍💻 Предлагаю услугу"
     )
+
+    title = html.escape(
+        row["title"] or "Без названия"
+    )
+
+    category = html.escape(
+        category_label(row["category"] or "other")
+    )
+
+    lines = [
+        f"📌 <b>{title}</b>",
+        "",
+        kind_text,
+        f"📂 <b>Категория:</b> {category}",
+    ]
+
+    if row["budget"]:
+        lines.append(
+            f"💰 <b>Бюджет:</b> "
+            f"{html.escape(row['budget'])}"
+        )
+
+    if row["city"]:
+        lines.append(
+            f"📍 <b>Город:</b> "
+            f"{html.escape(row['city'])}"
+        )
+
+    if row["deadline"]:
+        lines.append(
+            f"⏱ <b>Срок:</b> "
+            f"{html.escape(row['deadline'])}"
+        )
+
+    if row["experience"]:
+        lines.append(
+            f"⭐ <b>Опыт:</b> "
+            f"{html.escape(row['experience'])}"
+        )
+
+    if description:
+        lines.extend([
+            "",
+            "📝 <b>Описание:</b>",
+            html.escape(description),
+        ])
+
+    if row["portfolio"]:
+        lines.extend([
+            "",
+            f"🔗 <b>Портфолио:</b> "
+            f"{html.escape(row['portfolio'])}"
+        ])
+
+    lines.extend([
+        "",
+        "📢 <b>Vitrina Freelance MD</b>",
+    ])
+
+    return "\n".join(lines)
+
+
+def build_public_text(row, limit=4096):
+    description = row["description"] or ""
+
+    full = render_public_text(
+        row,
+        description
+    )
+
+    if len(full) <= limit:
+        return full
+
+    # Ищем максимальную длину описания,
+    # которая помещается в Telegram.
+    low = 0
+    high = len(description)
+    best = render_public_text(row, "")
+
+    while low <= high:
+        mid = (low + high) // 2
+
+        candidate_description = description[:mid]
+
+        if mid < len(description):
+            candidate_description += "…"
+
+        candidate = render_public_text(
+            row,
+            candidate_description
+        )
+
+        if len(candidate) <= limit:
+            best = candidate
+            low = mid + 1
+        else:
+            high = mid - 1
+
+    return best
 
 
 # ============================================================
-# QUICK START
+# CHANNEL
+# ============================================================
+
+def get_channel_target():
+    if CHANNEL_ID:
+        return CHANNEL_ID
+
+    if CHANNEL_USERNAME:
+        return f"@{CHANNEL_USERNAME}"
+
+    return None
+
+
+def publish_keyboard(row):
+    markup = types.InlineKeyboardMarkup()
+
+    username = (
+        row["username"]
+        if "username" in row.keys()
+        else ""
+    )
+
+    if username:
+        username = username.lstrip("@")
+
+        markup.add(
+            types.InlineKeyboardButton(
+                "💬 Связаться с продавцом",
+                url=f"https://t.me/{username}"
+            )
+        )
+
+    elif BOT_USERNAME:
+        markup.add(
+            types.InlineKeyboardButton(
+                "💬 Связаться с продавцом",
+                url=(
+                    f"https://t.me/{BOT_USERNAME}"
+                    f"?start=contact_{row['id']}"
+                )
+            )
+        )
+
+    if BOT_USERNAME:
+        markup.add(
+            types.InlineKeyboardButton(
+                "➕ Подать объявление",
+                url=f"https://t.me/{BOT_USERNAME}?start=post"
+            )
+        )
+
+    return markup
+
+
+def publish_listing(listing_id):
+    target = get_channel_target()
+
+    if not target:
+        raise RuntimeError(
+            "CHANNEL_USERNAME или CHANNEL_ID не установлен."
+        )
+
+    conn = get_db()
+
+    row = conn.execute(
+        """
+        SELECT
+            listings.*,
+            users.username,
+            users.first_name
+        FROM listings
+        LEFT JOIN users
+            ON users.user_id = listings.user_id
+        WHERE listings.id = ?
+        """,
+        (listing_id,)
+    ).fetchone()
+
+    conn.close()
+
+    if not row:
+        raise RuntimeError(
+            f"Объявление #{listing_id} не найдено."
+        )
+
+    if row["published_message_id"]:
+        logger.info(
+            "Listing %s already published as message %s",
+            listing_id,
+            row["published_message_id"]
+        )
+
+        return row["published_message_id"]
+
+    keyboard = publish_keyboard(row)
+
+    if row["photo_id"]:
+        text = build_public_text(
+            row,
+            limit=1024
+        )
+
+        message = bot.send_photo(
+            target,
+            row["photo_id"],
+            caption=text,
+            reply_markup=keyboard
+        )
+
+    else:
+        text = build_public_text(
+            row,
+            limit=4096
+        )
+
+        message = bot.send_message(
+            target,
+            text,
+            reply_markup=keyboard,
+            disable_web_page_preview=True
+        )
+
+    conn = get_db()
+
+    conn.execute(
+        """
+        UPDATE listings
+        SET published_message_id = ?
+        WHERE id = ?
+        """,
+        (
+            message.message_id,
+            listing_id
+        )
+    )
+
+    conn.commit()
+    conn.close()
+
+    logger.info(
+        "Listing %s published to %s, message_id=%s",
+        listing_id,
+        target,
+        message.message_id
+    )
+
+    return message.message_id
+
+
+# ============================================================
+# START QUICK FORM
 # ============================================================
 
 def start_quick_form(chat_id, user_id):
@@ -1272,28 +1372,441 @@ def start_quick_form(chat_id, user_id):
     bot.send_message(
         chat_id,
         tr(user_id, "choose_ad_type"),
-        reply_markup=ad_type_keyboard()
+        reply_markup=ad_type_keyboard(user_id)
     )
 
 
+def start_quick_form_with_kind(chat_id, user_id, kind):
+    states[user_id] = {
+        "mode": "quick",
+        "step": "quick_text",
+        "data": {
+            "kind": kind
+        }
+    }
+
+    key = (
+        "need_one_message"
+        if kind == "order"
+        else "offer_one_message"
+    )
+
+    bot.send_message(
+        chat_id,
+        tr(user_id, key),
+        reply_markup=cancel_keyboard(user_id)
+    )
+
+
+# ============================================================
+# PREVIEW
+# ============================================================
+
+def show_preview(chat_id, user_id):
+    state = states.get(user_id)
+
+    if not state:
+        return
+
+    data = state.get("data", {})
+
+    text = preview_text(
+        user_id,
+        data
+    )
+
+    has_photo = bool(
+        data.get("photo_id")
+    )
+
+    if state.get("preview_message_id"):
+        try:
+            bot.edit_message_text(
+                text,
+                chat_id,
+                state["preview_message_id"],
+                reply_markup=preview_keyboard(
+                    user_id,
+                    has_photo
+                )
+            )
+            return
+        except Exception:
+            pass
+
+    message = bot.send_message(
+        chat_id,
+        text,
+        reply_markup=preview_keyboard(
+            user_id,
+            has_photo
+        )
+    )
+
+    state["preview_message_id"] = message.message_id
+
+
+# ============================================================
+# SAVE LISTING
+# ============================================================
+
+def submit_form(chat_id, user_id):
+    state = states.get(user_id)
+
+    if not state:
+        return
+
+    data = state.get("data", {})
+
+    required = [
+        data.get("title"),
+        data.get("description"),
+        data.get("kind"),
+        data.get("category"),
+    ]
+
+    if not all(required):
+        bot.send_message(
+            chat_id,
+            "❗ Не хватает данных для объявления."
+        )
+        return
+
+    if not data.get("contact"):
+        state["step"] = "contact"
+
+        bot.send_message(
+            chat_id,
+            tr(user_id, "no_contact"),
+            reply_markup=cancel_keyboard(user_id)
+        )
+
+        return
+
+    conn = get_db()
+
+    cursor = conn.execute(
+        """
+        INSERT INTO listings (
+            user_id,
+            kind,
+            title,
+            category,
+            budget,
+            city,
+            deadline,
+            description,
+            experience,
+            portfolio,
+            photo_id,
+            contact,
+            status,
+            created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            user_id,
+            data["kind"],
+            data["title"],
+            data["category"],
+            data.get("budget", ""),
+            data.get("city", ""),
+            data.get("deadline", ""),
+            data["description"],
+            data.get("experience", ""),
+            data.get("portfolio", ""),
+            data.get("photo_id"),
+            data.get("contact", ""),
+            "pending",
+            current_time()
+        )
+    )
+
+    listing_id = cursor.lastrowid
+
+    conn.commit()
+    conn.close()
+
+    send_moderation(listing_id)
+
+    states.pop(user_id, None)
+
+    bot.send_message(
+        chat_id,
+        tr(user_id, "sent_moderation"),
+        reply_markup=main_menu(user_id)
+    )
+
+
+# ============================================================
+# MODERATION
+# ============================================================
+
+def moderation_text(row):
+    kind_text = (
+        "🔎 Ищу специалиста"
+        if row["kind"] == "order"
+        else "👨‍💻 Предлагаю услугу"
+    )
+
+    lines = [
+        "🆕 <b>Новое объявление на модерации</b>",
+        "",
+        f"🆔 ID: <code>{row['id']}</code>",
+        f"👤 User ID: <code>{row['user_id']}</code>",
+        "",
+        f"📌 <b>{html.escape(row['title'] or '')}</b>",
+        "",
+        kind_text,
+        f"📂 <b>Категория:</b> "
+        f"{html.escape(category_label(row['category'] or 'other'))}",
+    ]
+
+    if row["budget"]:
+        lines.append(
+            f"💰 <b>Бюджет:</b> "
+            f"{html.escape(row['budget'])}"
+        )
+
+    if row["city"]:
+        lines.append(
+            f"📍 <b>Город:</b> "
+            f"{html.escape(row['city'])}"
+        )
+
+    if row["deadline"]:
+        lines.append(
+            f"⏱ <b>Срок:</b> "
+            f"{html.escape(row['deadline'])}"
+        )
+
+    if row["experience"]:
+        lines.append(
+            f"⭐ <b>Опыт:</b> "
+            f"{html.escape(row['experience'])}"
+        )
+
+    lines.extend([
+        "",
+        "📝 <b>Описание:</b>",
+        html.escape(row["description"] or ""),
+    ])
+
+    if row["portfolio"]:
+        lines.extend([
+            "",
+            f"🔗 <b>Портфолио:</b> "
+            f"{html.escape(row['portfolio'])}"
+        ])
+
+    if row["contact"]:
+        lines.extend([
+            "",
+            f"👤 <b>Контакт:</b> "
+            f"{html.escape(row['contact'])}"
+        ])
+
+    return "\n".join(lines)
+
+
+def send_moderation(listing_id):
+    conn = get_db()
+
+    row = conn.execute(
+        """
+        SELECT
+            listings.*,
+            users.username,
+            users.first_name
+        FROM listings
+        LEFT JOIN users
+            ON users.user_id = listings.user_id
+        WHERE listings.id = ?
+        """,
+        (listing_id,)
+    ).fetchone()
+
+    conn.close()
+
+    if not row:
+        return
+
+    text = moderation_text(row)
+    keyboard = admin_keyboard(listing_id)
+
+    if row["photo_id"]:
+        caption = text[:1024]
+
+        bot.send_photo(
+            ADMIN_ID,
+            row["photo_id"],
+            caption=caption,
+            reply_markup=keyboard
+        )
+
+        if len(text) > 1024:
+            bot.send_message(
+                ADMIN_ID,
+                text[1024:]
+            )
+
+    else:
+        bot.send_message(
+            ADMIN_ID,
+            text[:4096],
+            reply_markup=keyboard
+        )
+
+
+# ============================================================
+# COMMAND / START
+# ============================================================
+
+@bot.message_handler(commands=["start"])
+def start_handler(message):
+    save_user(message.from_user)
+
+    user_id = message.from_user.id
+
+    args = message.text.split(maxsplit=1)
+
+    if len(args) > 1:
+        payload = args[1].strip()
+
+        if payload == "post":
+            start_quick_form(
+                message.chat.id,
+                user_id
+            )
+            return
+
+        if payload.startswith("contact_"):
+            try:
+                listing_id = int(
+                    payload.split("_", 1)[1]
+                )
+
+                handle_contact_request(
+                    user_id,
+                    listing_id
+                )
+
+            except Exception:
+                bot.send_message(
+                    message.chat.id,
+                    "Не удалось открыть объявление."
+                )
+
+            return
+
+    bot.send_message(
+        message.chat.id,
+        tr(user_id, "welcome"),
+        reply_markup=main_menu(user_id)
+    )
+
+
+# ============================================================
+# CONTACT REQUEST
+# ============================================================
+
+def handle_contact_request(user_id, listing_id):
+    conn = get_db()
+
+    row = conn.execute(
+        """
+        SELECT
+            listings.*,
+            users.username,
+            users.first_name
+        FROM listings
+        LEFT JOIN users
+            ON users.user_id = listings.user_id
+        WHERE listings.id = ?
+          AND listings.status = 'approved'
+        """,
+        (listing_id,)
+    ).fetchone()
+
+    requester = conn.execute(
+        """
+        SELECT first_name, username
+        FROM users
+        WHERE user_id = ?
+        """,
+        (user_id,)
+    ).fetchone()
+
+    conn.close()
+
+    if not row:
+        return
+
+    seller_id = row["user_id"]
+
+    if seller_id == user_id:
+        return
+
+    requester_name = (
+        requester["first_name"]
+        if requester
+        else "Пользователь"
+    )
+
+    requester_username = (
+        requester["username"]
+        if requester and requester["username"]
+        else ""
+    )
+
+    message_text = (
+        "📩 <b>Новый запрос по вашему объявлению!</b>\n\n"
+        f"📌 <b>{html.escape(row['title'])}</b>\n\n"
+        f"👤 Имя: {html.escape(requester_name)}"
+    )
+
+    if requester_username:
+        message_text += (
+            f"\n🔗 Telegram: "
+            f"@{html.escape(requester_username)}"
+        )
+
+    try:
+        bot.send_message(
+            seller_id,
+            message_text
+        )
+    except Exception as exc:
+        logger.warning(
+            "Could not notify seller %s: %s",
+            seller_id,
+            exc
+        )
+
+    bot.send_message(
+        user_id,
+        "✅ Продавцу отправлено уведомление. "
+        "Он сможет связаться с вами в Telegram."
+    )
+
+
+# ============================================================
+# CALLBACK: AD TYPE
+# ============================================================
+
 @bot.callback_query_handler(
-    func=lambda call:
-        call.data.startswith("quick_kind:")
+    func=lambda call: call.data.startswith("quick_kind:")
 )
 def quick_kind_callback(call):
     user_id = call.from_user.id
 
-    kind = call.data.split(
-        ":",
-        1
-    )[1]
+    save_user(call.from_user)
+
+    kind = call.data.split(":", 1)[1]
 
     if kind not in ("order", "service"):
-        bot.answer_callback_query(
-            call.id,
-            "Ошибка.",
-            show_alert=True
-        )
+        bot.answer_callback_query(call.id)
         return
 
     states[user_id] = {
@@ -1304,633 +1817,53 @@ def quick_kind_callback(call):
         }
     }
 
+    key = (
+        "need_one_message"
+        if kind == "order"
+        else "offer_one_message"
+    )
+
     bot.answer_callback_query(call.id)
 
-    bot.send_message(
+    bot.edit_message_text(
+        tr(user_id, key),
         call.message.chat.id,
-        tr(user_id, "need_one_message")
-        + "\n\n"
-        + tr(user_id, "photo_optional"),
-        reply_markup=cancel_keyboard(user_id)
+        call.message.message_id
     )
 
 
 # ============================================================
-# START
-# ============================================================
-
-@bot.message_handler(commands=["start"])
-def start_command(message):
-    save_user(message.from_user)
-
-    user_id = message.from_user.id
-
-    parts = message.text.split(
-        maxsplit=1
-    )
-
-    argument = (
-        parts[1]
-        if len(parts) > 1
-        else ""
-    ).strip()
-
-    # --------------------------------------------------------
-    # QUICK POST
-    # --------------------------------------------------------
-
-    if argument == "post":
-        start_quick_form(
-            message.chat.id,
-            user_id
-        )
-        return
-
-    # --------------------------------------------------------
-    # CONTACT
-    # --------------------------------------------------------
-
-    if argument.startswith("contact_"):
-        try:
-            listing_id = int(
-                argument.replace(
-                    "contact_",
-                    "",
-                    1
-                )
-            )
-        except ValueError:
-            listing_id = None
-
-        if listing_id:
-            with get_db() as conn:
-                listing = conn.execute(
-                    "SELECT * FROM listings WHERE id=?",
-                    (listing_id,)
-                ).fetchone()
-
-            if listing and listing["user_id"] != user_id:
-                requester = (
-                    f"@{message.from_user.username}"
-                    if message.from_user.username
-                    else
-                    message.from_user.first_name
-                )
-
-                try:
-                    bot.send_message(
-                        listing["user_id"],
-                        "💬 <b>Новый запрос на связь</b>\n\n"
-                        f"Объявление: #{listing_id}\n"
-                        f"От: {escape(requester)}\n\n"
-                        "Вы можете открыть профиль пользователя "
-                        "в Telegram и связаться с ним."
-                    )
-
-                    bot.send_message(
-                        message.chat.id,
-                        "✅ Запрос на связь отправлен автору.",
-                        reply_markup=main_menu(user_id)
-                    )
-
-                    return
-
-                except Exception:
-                    logger.exception(
-                        "Contact notification failed"
-                    )
-
-    bot.send_message(
-        message.chat.id,
-        tr(user_id, "welcome")
-        + "\n\n"
-        + tr(user_id, "choose"),
-        reply_markup=main_menu(user_id)
-    )
-
-
-# ============================================================
-# CHAT ID
-# ============================================================
-
-@bot.message_handler(commands=["id"])
-def group_id_command(message):
-    bot.send_message(
-        message.chat.id,
-        "🆔 ID этого чата:\n\n"
-        f"<code>{message.chat.id}</code>"
-    )
-
-
-# ============================================================
-# MENU
-# ============================================================
-
-@bot.message_handler(
-    func=lambda message:
-        message.text in [
-            TEXT["ru"]["submit_ad"],
-            TEXT["ro"]["submit_ad"],
-
-            TEXT["ru"]["order"],
-            TEXT["ro"]["order"],
-
-            TEXT["ru"]["service"],
-            TEXT["ro"]["service"],
-
-            TEXT["ru"]["find"],
-            TEXT["ro"]["find"],
-
-            TEXT["ru"]["mine"],
-            TEXT["ro"]["mine"],
-
-            TEXT["ru"]["about"],
-            TEXT["ro"]["about"],
-
-            TEXT["ru"]["support"],
-            TEXT["ro"]["support"],
-
-            TEXT["ru"]["language"],
-            TEXT["ro"]["language"]
-        ]
-)
-def menu_handler(message):
-    save_user(message.from_user)
-
-    user_id = message.from_user.id
-    text = message.text
-
-    # Новый режим
-    if text in (
-        TEXT["ru"]["submit_ad"],
-        TEXT["ro"]["submit_ad"]
-    ):
-        start_quick_form(
-            message.chat.id,
-            user_id
-        )
-        return
-
-    # Старый режим — заказ
-    if text in (
-        TEXT["ru"]["order"],
-        TEXT["ro"]["order"]
-    ):
-        start_form(
-            message.chat.id,
-            user_id,
-            "order"
-        )
-        return
-
-    # Старый режим — услуга
-    if text in (
-        TEXT["ru"]["service"],
-        TEXT["ro"]["service"]
-    ):
-        start_form(
-            message.chat.id,
-            user_id,
-            "service"
-        )
-        return
-
-    if text in (
-        TEXT["ru"]["find"],
-        TEXT["ro"]["find"]
-    ):
-        bot.send_message(
-            message.chat.id,
-            tr(user_id, "choose"),
-            reply_markup=find_keyboard(user_id)
-        )
-        return
-
-    if text in (
-        TEXT["ru"]["mine"],
-        TEXT["ro"]["mine"]
-    ):
-        show_my_listings(
-            message.chat.id,
-            user_id
-        )
-        return
-
-    if text in (
-        TEXT["ru"]["about"],
-        TEXT["ro"]["about"]
-    ):
-        bot.send_message(
-            message.chat.id,
-            "<b>Vitrina Freelance MD</b> — "
-            "площадка для заказчиков и специалистов.\n\n"
-            "Заказчики могут размещать задачи, "
-            "а фрилансеры — предлагать свои услуги.\n\n"
-            "Все объявления проходят модерацию "
-            "перед публикацией.",
-            reply_markup=main_menu(user_id)
-        )
-        return
-
-    if text in (
-        TEXT["ru"]["support"],
-        TEXT["ro"]["support"]
-    ):
-        states[user_id] = {
-            "mode": "support",
-            "step": "support_text",
-            "data": {}
-        }
-
-        bot.send_message(
-            message.chat.id,
-            tr(user_id, "support_prompt"),
-            reply_markup=cancel_keyboard(user_id)
-        )
-        return
-
-    keyboard = types.InlineKeyboardMarkup(row_width=2)
-
-    keyboard.add(
-        types.InlineKeyboardButton(
-            "🇷🇺 Русский",
-            callback_data="language:ru"
-        ),
-        types.InlineKeyboardButton(
-            "🇷🇴 Română",
-            callback_data="language:ro"
-        )
-    )
-
-    bot.send_message(
-        message.chat.id,
-        tr(user_id, "choose_language"),
-        reply_markup=keyboard
-    )
-
-
-# ============================================================
-# LANGUAGE
+# CALLBACK: EDIT MENU
 # ============================================================
 
 @bot.callback_query_handler(
-    func=lambda call:
-        call.data.startswith("language:")
+    func=lambda call: call.data == "edit_menu"
 )
-def language_callback(call):
-    language = call.data.split(
-        ":",
-        1
-    )[1]
-
-    set_language(
-        call.from_user.id,
-        language
-    )
-
-    bot.answer_callback_query(
-        call.id,
-        "OK"
-    )
-
+def edit_menu_callback(call):
     user_id = call.from_user.id
 
-    bot.send_message(
-        call.message.chat.id,
-        tr(user_id, "welcome")
-        + "\n\n"
-        + tr(user_id, "choose"),
-        reply_markup=main_menu(user_id)
-    )
+    state = states.get(user_id)
 
-
-# ============================================================
-# FIND
-# ============================================================
-
-@bot.callback_query_handler(
-    func=lambda call:
-        call.data in (
-            "find_orders",
-            "find_services"
-        )
-)
-def find_callback(call):
-    user_id = call.from_user.id
-
-    kind = (
-        "order"
-        if call.data == "find_orders"
-        else
-        "service"
-    )
-
-    states[user_id] = {
-        "mode": "search",
-        "step": "search",
-        "data": {
-            "kind": kind
-        }
-    }
-
-    keyboard = types.InlineKeyboardMarkup()
-
-    keyboard.add(
-        types.InlineKeyboardButton(
-            tr(user_id, "all"),
-            callback_data=f"search_all:{kind}"
-        )
-    )
-
-    bot.answer_callback_query(call.id)
-
-    bot.send_message(
-        call.message.chat.id,
-        tr(user_id, "ask_search"),
-        reply_markup=keyboard
-    )
-
-
-@bot.callback_query_handler(
-    func=lambda call:
-        call.data.startswith("search_all:")
-)
-def search_all_callback(call):
-    user_id = call.from_user.id
-
-    kind = call.data.split(
-        ":",
-        1
-    )[1]
-
-    states.pop(
-        user_id,
-        None
-    )
-
-    bot.answer_callback_query(call.id)
-
-    show_search_results(
-        call.message.chat.id,
-        user_id,
-        kind,
-        ""
-    )
-
-
-def show_search_results(
-    chat_id,
-    user_id,
-    kind,
-    query
-):
-    search = f"%{query.lower()}%"
-
-    with get_db() as conn:
-        if query:
-            rows = conn.execute("""
-                SELECT *
-                FROM listings
-                WHERE kind=?
-                AND status='approved'
-                AND (
-                    lower(title) LIKE ?
-                    OR lower(category) LIKE ?
-                    OR lower(description) LIKE ?
-                    OR lower(city) LIKE ?
-                )
-                ORDER BY id DESC
-                LIMIT 10
-            """, (
-                kind,
-                search,
-                search,
-                search,
-                search
-            )).fetchall()
-        else:
-            rows = conn.execute("""
-                SELECT *
-                FROM listings
-                WHERE kind=?
-                AND status='approved'
-                ORDER BY id DESC
-                LIMIT 10
-            """, (
-                kind,
-            )).fetchall()
-
-    if not rows:
-        bot.send_message(
-            chat_id,
-            tr(user_id, "no_results"),
-            reply_markup=main_menu(user_id)
-        )
+    if not state:
+        bot.answer_callback_query(call.id)
         return
 
-    for row in rows:
-        type_text = (
-            "📝 Заказ"
-            if kind == "order"
-            else
-            "👨‍💻 Услуга"
-        )
-
-        text = (
-            f"<b>{type_text}</b>\n\n"
-            f"<b>{escape(row['title'])}</b>\n"
-            f"🏷 {escape(row['category'])}\n"
-        )
-
-        if row["budget"]:
-            text += f"💰 {escape(row['budget'])}\n"
-
-        if row["city"]:
-            text += f"📍 {escape(row['city'])}\n"
-
-        text += "\n" + escape(
-            row["description"][:900]
-        )
-
-        keyboard = types.InlineKeyboardMarkup()
-
-        with get_db() as conn:
-            author = conn.execute(
-                """
-                SELECT username
-                FROM users
-                WHERE user_id=?
-                """,
-                (row["user_id"],)
-            ).fetchone()
-
-        if author and author["username"]:
-            keyboard.add(
-                types.InlineKeyboardButton(
-                    tr(user_id, "contact_author"),
-                    url=(
-                        "https://t.me/"
-                        + author["username"]
-                    )
-                )
-            )
-        elif BOT_USERNAME:
-            keyboard.add(
-                types.InlineKeyboardButton(
-                    tr(user_id, "contact_author"),
-                    url=(
-                        f"https://t.me/"
-                        f"{BOT_USERNAME}"
-                        f"?start=contact_{row['id']}"
-                    )
-                )
-            )
-
-        bot.send_message(
-            chat_id,
-            text,
-            reply_markup=keyboard
-        )
-
-    bot.send_message(
-        chat_id,
-        tr(user_id, "choose"),
-        reply_markup=main_menu(user_id)
-    )
-
-
-# ============================================================
-# MY LISTINGS
-# ============================================================
-
-def show_my_listings(chat_id, user_id):
-    with get_db() as conn:
-        rows = conn.execute("""
-            SELECT *
-            FROM listings
-            WHERE user_id=?
-            ORDER BY id DESC
-            LIMIT 20
-        """, (user_id,)).fetchall()
-
-    if not rows:
-        bot.send_message(
-            chat_id,
-            tr(user_id, "empty"),
-            reply_markup=main_menu(user_id)
-        )
-        return
-
-    status_names = {
-        "pending": "🟡 На модерации",
-        "approved": "🟢 Одобрено",
-        "rejected": "🔴 Отклонено"
-    }
-
-    result = [
-        tr(user_id, "my_title")
-    ]
-
-    for row in rows:
-        result.append(
-            f"\n#{row['id']} — "
-            f"<b>{escape(row['title'])}</b>\n"
-            f"{status_names.get(row['status'], row['status'])}"
-        )
-
-    bot.send_message(
-        chat_id,
-        "\n".join(result),
-        reply_markup=main_menu(user_id)
-    )
-
-
-# ============================================================
-# CANCEL
-# ============================================================
-
-@bot.callback_query_handler(
-    func=lambda call:
-        call.data == "cancel_form"
-)
-def cancel_form(call):
-    states.pop(
-        call.from_user.id,
-        None
-    )
-
-    support_replies.pop(
-        call.from_user.id,
-        None
-    )
-
     bot.answer_callback_query(call.id)
 
-    bot.send_message(
+    bot.edit_message_text(
+        tr(user_id, "choose_edit"),
         call.message.chat.id,
-        tr(
-            call.from_user.id,
-            "choose"
-        ),
-        reply_markup=main_menu(
-            call.from_user.id
-        )
-    )
-
-
-# ============================================================
-# OLD FORM
-# ============================================================
-
-def start_form(chat_id, user_id, kind):
-    states[user_id] = {
-        "mode": "old",
-        "step": "title",
-        "data": {
-            "kind": kind
-        }
-    }
-
-    bot.send_message(
-        chat_id,
-        tr(user_id, "need_title"),
-        reply_markup=cancel_keyboard(user_id)
-    )
-
-
-# ============================================================
-# OLD FORM EDIT
-# ============================================================
-
-@bot.callback_query_handler(
-    func=lambda call:
-        call.data == "edit_form"
-)
-def edit_form(call):
-    user_id = call.from_user.id
-
-    if user_id not in states:
-        bot.answer_callback_query(
-            call.id,
-            tr(user_id, "form_closed"),
-            show_alert=True
-        )
-        return
-
-    states[user_id]["step"] = "edit_menu"
-
-    bot.answer_callback_query(call.id)
-
-    bot.send_message(
-        call.message.chat.id,
-        tr(user_id, "edit_choose"),
+        call.message.message_id,
         reply_markup=edit_keyboard(user_id)
     )
 
 
+# ============================================================
+# CALLBACK: EDIT FIELD
+# ============================================================
+
 @bot.callback_query_handler(
-    func=lambda call:
-        call.data.startswith("edit_field:")
+    func=lambda call: call.data.startswith("edit_field:")
 )
 def edit_field_callback(call):
     user_id = call.from_user.id
@@ -1938,91 +1871,172 @@ def edit_field_callback(call):
     state = states.get(user_id)
 
     if not state:
-        bot.answer_callback_query(
-            call.id,
-            tr(user_id, "form_closed"),
-            show_alert=True
-        )
+        bot.answer_callback_query(call.id)
         return
 
-    field = call.data.split(
-        ":",
-        1
-    )[1]
-
-    data = state["data"]
-
-    bot.answer_callback_query(call.id)
+    field = call.data.split(":", 1)[1]
 
     if field == "category":
         state["step"] = "edit_category"
 
-        bot.send_message(
+        bot.answer_callback_query(call.id)
+
+        bot.edit_message_text(
+            tr(user_id, "choose_category"),
             call.message.chat.id,
-            tr(user_id, "need_category"),
-            reply_markup=category_keyboard(
-                data["kind"]
-            )
+            call.message.message_id,
+            reply_markup=category_keyboard()
         )
+
         return
 
     if field == "photo":
         state["step"] = "edit_photo"
 
+        bot.answer_callback_query(call.id)
+
         bot.send_message(
             call.message.chat.id,
-            "📷 Отправьте фотографию.",
+            tr(user_id, "send_photo"),
             reply_markup=cancel_keyboard(user_id)
         )
+
         return
 
-    prompts = {
-        "title": "need_title",
-        "budget": (
-            "need_budget"
-            if data["kind"] == "order"
-            else "need_price"
-        ),
-        "city": "need_city",
-        "deadline": "need_deadline",
-        "description": "need_description",
-        "experience": "need_experience",
-        "portfolio": "need_portfolio",
-        "contact": "need_contact"
+    valid_fields = {
+        "title": "edit_title",
+        "description": "edit_description",
+        "budget": "edit_budget",
+        "city": "edit_city",
+        "deadline": "edit_deadline",
+        "experience": "edit_experience",
+        "portfolio": "edit_portfolio",
+        "contact": "edit_contact",
     }
 
-    if field not in prompts:
+    if field not in valid_fields:
+        bot.answer_callback_query(call.id)
         return
 
     state["step"] = f"edit_{field}"
 
+    bot.answer_callback_query(call.id)
+
     bot.send_message(
         call.message.chat.id,
-        tr(user_id, prompts[field]),
+        tr(user_id, valid_fields[field]),
         reply_markup=cancel_keyboard(user_id)
     )
 
 
+# ============================================================
+# CALLBACK: CATEGORY
+# ============================================================
+
 @bot.callback_query_handler(
-    func=lambda call:
-        call.data == "delete_photo"
+    func=lambda call: call.data.startswith("category:")
+)
+def category_callback(call):
+    user_id = call.from_user.id
+
+    state = states.get(user_id)
+
+    if not state:
+        bot.answer_callback_query(call.id)
+        return
+
+    category = call.data.split(":", 1)[1]
+
+    valid = {
+        key
+        for key, _ in CATEGORIES
+    }
+
+    if category not in valid:
+        bot.answer_callback_query(call.id)
+        return
+
+    state["data"]["category"] = category
+    state["step"] = "preview"
+
+    bot.answer_callback_query(call.id)
+
+    show_preview(
+        call.message.chat.id,
+        user_id
+    )
+
+
+# ============================================================
+# CALLBACK: BACK PREVIEW
+# ============================================================
+
+@bot.callback_query_handler(
+    func=lambda call: call.data == "back_preview"
+)
+def back_preview_callback(call):
+    user_id = call.from_user.id
+
+    if user_id not in states:
+        bot.answer_callback_query(call.id)
+        return
+
+    bot.answer_callback_query(call.id)
+
+    show_preview(
+        call.message.chat.id,
+        user_id
+    )
+
+
+# ============================================================
+# CALLBACK: ADD PHOTO
+# ============================================================
+
+@bot.callback_query_handler(
+    func=lambda call: call.data == "add_photo"
+)
+def add_photo_callback(call):
+    user_id = call.from_user.id
+
+    state = states.get(user_id)
+
+    if not state:
+        bot.answer_callback_query(call.id)
+        return
+
+    state["step"] = "edit_photo"
+
+    bot.answer_callback_query(call.id)
+
+    bot.send_message(
+        call.message.chat.id,
+        tr(user_id, "send_photo"),
+        reply_markup=cancel_keyboard(user_id)
+    )
+
+
+# ============================================================
+# CALLBACK: DELETE PHOTO
+# ============================================================
+
+@bot.callback_query_handler(
+    func=lambda call: call.data == "delete_photo"
 )
 def delete_photo_callback(call):
     user_id = call.from_user.id
 
-    if user_id not in states:
-        bot.answer_callback_query(
-            call.id,
-            tr(user_id, "form_closed"),
-            show_alert=True
-        )
+    state = states.get(user_id)
+
+    if not state:
+        bot.answer_callback_query(call.id)
         return
 
-    states[user_id]["data"]["photo_id"] = None
+    state["data"]["photo_id"] = None
 
     bot.answer_callback_query(
         call.id,
-        "Фото удалено."
+        tr(user_id, "photo_deleted")
     )
 
     show_preview(
@@ -2032,280 +2046,57 @@ def delete_photo_callback(call):
 
 
 # ============================================================
-# CATEGORY
+# CALLBACK: CANCEL
 # ============================================================
 
 @bot.callback_query_handler(
-    func=lambda call:
-        call.data.startswith("order_category:")
-        or call.data.startswith("service_category:")
+    func=lambda call: call.data == "cancel_form"
 )
-def category_callback(call):
+def cancel_form_callback(call):
     user_id = call.from_user.id
 
-    if user_id not in states:
-        bot.answer_callback_query(
-            call.id,
-            "Форма устарела.",
-            show_alert=True
-        )
-        return
-
-    category_key = call.data.split(
-        ":",
-        1
-    )[1]
-
-    category_label_value = dict(
-        CATEGORIES
-    ).get(
-        category_key,
-        category_key
-    )
-
-    data = states[user_id]["data"]
-
-    data["category"] = category_key
-    data["category_label"] = category_label_value
-
-    # Если редактируем категорию — сразу назад к preview.
-    if states[user_id]["step"] == "edit_category":
-        states[user_id]["step"] = "preview"
-
-        bot.answer_callback_query(call.id)
-
-        show_preview(
-            call.message.chat.id,
-            user_id
-        )
-        return
-
-    states[user_id]["step"] = "budget"
+    states.pop(user_id, None)
 
     bot.answer_callback_query(call.id)
 
-    bot.send_message(
-        call.message.chat.id,
-        tr(
-            user_id,
-            "need_budget"
-            if data["kind"] == "order"
-            else "need_price"
-        ),
-        reply_markup=cancel_keyboard(user_id)
-    )
-
-
-# ============================================================
-# PUBLIC CHANNEL URL
-# ============================================================
-
-def channel_post_url(message_id):
-    if not CHANNEL_USERNAME:
-        return None
-
-    return (
-        f"https://t.me/"
-        f"{CHANNEL_USERNAME}/"
-        f"{message_id}"
-        f"?comment={message_id}"
-    )
-
-
-# ============================================================
-# PUBLICATION
-# ============================================================
-
-def publish_listing(listing_id):
-    if not GROUP_ID:
-        raise RuntimeError(
-            "GROUP_ID не установлен в Render."
-        )
-
-    with get_db() as conn:
-        row = conn.execute("""
-            SELECT
-                listings.*,
-                users.username
-            FROM listings
-            JOIN users
-                ON users.user_id = listings.user_id
-            WHERE listings.id=?
-        """, (listing_id,)).fetchone()
-
-    if not row:
-        raise RuntimeError(
-            "Объявление не найдено."
-        )
-
-    type_title = (
-        "📝 ЗАКАЗ"
-        if row["kind"] == "order"
-        else
-        "👨‍💻 УСЛУГА"
-    )
-
-    text = (
-        f"<b>{type_title}</b>\n\n"
-        f"<b>{escape(row['title'])}</b>\n"
-        f"🏷 {escape(row['category'])}\n"
-    )
-
-    if row["budget"]:
-        label = (
-            "Бюджет"
-            if row["kind"] == "order"
-            else
-            "Цена"
-        )
-
-        text += (
-            f"💰 {label}: "
-            f"{escape(row['budget'])}\n"
-        )
-
-    if row["city"]:
-        text += (
-            f"📍 {escape(row['city'])}\n"
-        )
-
-    if row["deadline"]:
-        text += (
-            f"📅 Срок: "
-            f"{escape(row['deadline'])}\n"
-        )
-
-    if row["experience"]:
-        text += (
-            f"⭐ Опыт: "
-            f"{escape(row['experience'])}\n"
-        )
-
-    text += (
-        "\n"
-        f"{escape(row['description'])}\n"
-    )
-
-    if row["portfolio"]:
-        text += (
-            "\n🔗 Портфолио: "
-            f"{escape(row['portfolio'])}\n"
-        )
-
-    text += (
-        "\n━━━━━━━━━━━━━━━━━━\n"
-        "🚀 <b>Хотите разместить своё объявление?</b>\n"
-        "Подайте его через нашего бота."
-    )
-
-    # Telegram ограничивает caption фото.
-    # Если текст слишком большой — публикуем текст отдельно.
-    if row["photo_id"] and len(text) <= 1000:
-        post_message = bot.send_photo(
-            GROUP_ID,
-            row["photo_id"],
-            caption=text
-        )
-    elif row["photo_id"]:
-        post_message = bot.send_photo(
-            GROUP_ID,
-            row["photo_id"],
-            caption=(
-                f"<b>{escape(row['title'])}</b>\n"
-                f"🏷 {escape(row['category'])}"
-            )
-        )
-
-        bot.send_message(
-            GROUP_ID,
-            text
-        )
-    else:
-        post_message = bot.send_message(
-            GROUP_ID,
-            text
-        )
-
-    keyboard = types.InlineKeyboardMarkup(row_width=1)
-
-    if row["username"]:
-        keyboard.add(
-            types.InlineKeyboardButton(
-                "💬 Связаться с продавцом",
-                url=(
-                    "https://t.me/"
-                    + row["username"]
-                )
-            )
-        )
-    if BOT_USERNAME:
-        keyboard.add(
-            types.InlineKeyboardButton(
-                "💬 Связаться с продавцом",
-                url=(
-                    f"https://t.me/"
-                    f"{BOT_USERNAME}"
-                    f"?start=contact_{listing_id}"
-                )
-            )
-        )
-    if if BOT_USERNAME:
-        keyboard.add(
-            types.InlineKeyboardButton(
-                "➕ Подать объявление",
-                url=(
-                    f"https://t.me/"
-                    f"{BOT_USERNAME}"
-                    f"?start=post"
-                )
-            )
-        )
-
-    # Для сообщения с фото клавиатура ставится на само фото.
     try:
         bot.edit_message_reply_markup(
-            GROUP_ID,
-            post_message.message_id,
-            reply_markup=keyboard
+            call.message.chat.id,
+            call.message.message_id,
+            reply_markup=None
         )
     except Exception:
-        logger.exception(
-            "Could not add publication buttons"
-        )
+        pass
 
-    with get_db() as conn:
-        conn.execute(
-            """
-            UPDATE listings
-            SET published_message_id=?
-            WHERE id=?
-            """,
-            (
-                post_message.message_id,
-                listing_id
-            )
-        )
-        conn.commit()
-
-    return post_message.message_id
+    bot.send_message(
+        call.message.chat.id,
+        tr(user_id, "cancelled"),
+        reply_markup=main_menu(user_id)
+    )
 
 
 # ============================================================
-# USER NOTIFICATION
+# CALLBACK: SUBMIT LISTING
 # ============================================================
 
-def notify_user(user_id, text):
-    try:
-        bot.send_message(
-            user_id,
-            text,
-            reply_markup=main_menu(user_id)
-        )
-    except Exception:
-        logger.exception(
-            "Could not notify user %s",
-            user_id
-        )
+@bot.callback_query_handler(
+    func=lambda call: call.data == "submit_listing"
+)
+def submit_listing_callback(call):
+    user_id = call.from_user.id
+
+    state = states.get(user_id)
+
+    if not state:
+        bot.answer_callback_query(call.id)
+        return
+
+    bot.answer_callback_query(call.id)
+
+    submit_form(
+        call.message.chat.id,
+        user_id
+    )
 
 
 # ============================================================
@@ -2313,10 +2104,7 @@ def notify_user(user_id, text):
 # ============================================================
 
 @bot.callback_query_handler(
-    func=lambda call:
-        call.data.startswith("admin_approve:")
-        or
-        call.data.startswith("admin_reject:")
+    func=lambda call: call.data.startswith("admin:")
 )
 def admin_callback(call):
     if call.from_user.id != ADMIN_ID:
@@ -2327,28 +2115,34 @@ def admin_callback(call):
         )
         return
 
-    action, id_text = call.data.split(
-        ":",
-        1
-    )
+    parts = call.data.split(":")
 
-    try:
-        listing_id = int(id_text)
-    except ValueError:
-        bot.answer_callback_query(
-            call.id,
-            "Неверный ID.",
-            show_alert=True
-        )
+    if len(parts) != 3:
+        bot.answer_callback_query(call.id)
         return
 
-    with get_db() as conn:
-        listing = conn.execute(
-            "SELECT * FROM listings WHERE id=?",
-            (listing_id,)
-        ).fetchone()
+    action = parts[1]
 
-    if not listing:
+    try:
+        listing_id = int(parts[2])
+    except ValueError:
+        bot.answer_callback_query(call.id)
+        return
+
+    conn = get_db()
+
+    row = conn.execute(
+        """
+        SELECT *
+        FROM listings
+        WHERE id = ?
+        """,
+        (listing_id,)
+    ).fetchone()
+
+    conn.close()
+
+    if not row:
         bot.answer_callback_query(
             call.id,
             "Объявление не найдено.",
@@ -2356,7 +2150,7 @@ def admin_callback(call):
         )
         return
 
-    if listing["status"] != "pending":
+    if row["status"] != "pending":
         bot.answer_callback_query(
             call.id,
             "Это объявление уже обработано.",
@@ -2364,721 +2158,180 @@ def admin_callback(call):
         )
         return
 
-    # REJECT
-    if action == "admin_reject":
-        with get_db() as conn:
-            conn.execute(
-                """
-                UPDATE listings
-                SET status='rejected'
-                WHERE id=?
-                """,
-                (listing_id,)
-            )
-            conn.commit()
+    if action == "reject":
+        conn = get_db()
 
-        bot.answer_callback_query(
-            call.id,
-            "Отклонено."
-        )
-
-        try:
-            bot.edit_message_reply_markup(
-                call.message.chat.id,
-                call.message.message_id,
-                reply_markup=None
-            )
-        except Exception:
-            logger.exception(
-                "Could not remove admin buttons"
-            )
-
-        notify_user(
-            listing["user_id"],
-            tr(
-                listing["user_id"],
-                "rejected"
-            )
-        )
-        return
-
-    # APPROVE
-    try:
-        message_id = publish_listing(
-            listing_id
-        )
-
-        with get_db() as conn:
-            conn.execute(
-                """
-                UPDATE listings
-                SET status='approved'
-                WHERE id=?
-                """,
-                (listing_id,)
-            )
-            conn.commit()
-
-        bot.answer_callback_query(
-            call.id,
-            "Опубликовано."
-        )
-
-        try:
-            bot.edit_message_reply_markup(
-                call.message.chat.id,
-                call.message.message_id,
-                reply_markup=None
-            )
-        except Exception:
-            logger.exception(
-                "Could not remove admin buttons"
-            )
-
-        notify_user(
-            listing["user_id"],
-            tr(
-                listing["user_id"],
-                "approved"
-            )
-            + "\n"
-            + tr(
-                listing["user_id"],
-                "published"
-            )
-        )
-
-        logger.info(
-            "Listing #%s published as message %s",
-            listing_id,
-            message_id
-        )
-
-    except Exception as error:
-        logger.exception(
-            "Publication failed"
-        )
-
-        bot.answer_callback_query(
-            call.id,
-            "Ошибка публикации.",
-            show_alert=True
-        )
-
-        try:
-            bot.send_message(
-                ADMIN_ID,
-                "⚠️ <b>Ошибка публикации</b>\n\n"
-                f"Объявление: #{listing_id}\n"
-                f"<code>{escape(error)}</code>"
-            )
-        except Exception:
-            logger.exception(
-                "Could not send publication error to admin"
-            )
-
-
-# ============================================================
-# SUBMIT FORM
-# ============================================================
-
-@bot.callback_query_handler(
-    func=lambda call:
-        call.data == "submit_form"
-)
-def submit_form(call):
-    user_id = call.from_user.id
-
-    state = states.get(user_id)
-
-    if not state:
-        bot.answer_callback_query(
-            call.id,
-            tr(user_id, "form_closed"),
-            show_alert=True
-        )
-        return
-
-    data = state["data"]
-
-    # Для нового режима категория может быть не определена.
-    if not data.get("category_label"):
-        data["category"] = data.get(
-            "category",
-            "other"
-        )
-        data["category_label"] = category_label(
-            data["category"]
-        )
-
-    # Контакт автоматически берём из Telegram.
-    if not data.get("contact"):
-        username = call.from_user.username
-
-        if username:
-            data["contact"] = f"@{username}"
-
-    # Если вообще нет контакта — просим указать.
-    if not data.get("contact"):
-        state["step"] = "contact"
-
-        bot.answer_callback_query(
-            call.id,
-            "Нужен контакт.",
-            show_alert=True
-        )
-
-        bot.send_message(
-            call.message.chat.id,
-            tr(user_id, "need_contact"),
-            reply_markup=cancel_keyboard(user_id)
-        )
-        return
-
-    with get_db() as conn:
-        cursor = conn.execute(
+        conn.execute(
             """
-            INSERT INTO listings
-            (
-                user_id,
-                kind,
-                title,
-                category,
-                budget,
-                city,
-                deadline,
-                description,
-                experience,
-                portfolio,
-                photo_id,
-                contact,
-                status,
-                created_at
-            )
-            VALUES
-            (
-                ?, ?, ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, ?
-            )
+            UPDATE listings
+            SET status = 'rejected'
+            WHERE id = ?
             """,
-            (
-                user_id,
-                data["kind"],
-                data["title"],
-                data["category_label"],
-                data.get("budget"),
-                data.get("city"),
-                data.get("deadline"),
-                data["description"],
-                data.get("experience"),
-                data.get("portfolio"),
-                data.get("photo_id"),
-                data.get("contact"),
-                "pending",
-                current_time()
-            )
+            (listing_id,)
         )
 
-        listing_id = cursor.lastrowid
         conn.commit()
+        conn.close()
 
-    states.pop(
-        user_id,
-        None
-    )
-
-    with get_db() as conn:
-        row = conn.execute("""
-            SELECT
-                listings.*,
-                users.first_name,
-                users.username
-            FROM listings
-            JOIN users
-                ON users.user_id = listings.user_id
-            WHERE listings.id=?
-        """, (listing_id,)).fetchone()
-
-    type_title = (
-        "📝 ЗАКАЗ"
-        if row["kind"] == "order"
-        else
-        "👨‍💻 УСЛУГА"
-    )
-
-    admin_text = (
-        f"<b>🆕 Новое объявление #{listing_id}</b>\n\n"
-        f"{type_title}\n"
-        f"<b>{escape(row['title'])}</b>\n"
-        f"🏷 {escape(row['category'])}\n"
-    )
-
-    if row["budget"]:
-        admin_text += (
-            f"💰 {escape(row['budget'])}\n"
-        )
-
-    if row["city"]:
-        admin_text += (
-            f"📍 {escape(row['city'])}\n"
-        )
-
-    if row["deadline"]:
-        admin_text += (
-            f"📅 {escape(row['deadline'])}\n"
-        )
-
-    if row["experience"]:
-        admin_text += (
-            f"⭐ {escape(row['experience'])}\n"
-        )
-
-    admin_text += (
-        "\n"
-        f"📝 {escape(row['description'])}\n"
-    )
-
-    if row["portfolio"]:
-        admin_text += (
-            "\n🔗 "
-            f"{escape(row['portfolio'])}\n"
-        )
-
-    admin_text += (
-        "\n📞 "
-        f"{escape(row['contact'] or 'Не указан')}"
-    )
-
-    admin_text += (
-        "\n\n👤 "
-        f"{escape(row['first_name'])}"
-    )
-
-    if row["username"]:
-        admin_text += (
-            f" (@{escape(row['username'])})"
-        )
-
-    keyboard = types.InlineKeyboardMarkup(row_width=2)
-
-    keyboard.add(
-        types.InlineKeyboardButton(
-            "✅ Одобрить",
-            callback_data=(
-                f"admin_approve:{listing_id}"
+        try:
+            bot.edit_message_reply_markup(
+                call.message.chat.id,
+                call.message.message_id,
+                reply_markup=None
             )
-        ),
-        types.InlineKeyboardButton(
-            "❌ Отклонить",
-            callback_data=(
-                f"admin_reject:{listing_id}"
-            )
-        )
-    )
+        except Exception:
+            pass
 
-    try:
-        if row["photo_id"]:
-            bot.send_photo(
-                ADMIN_ID,
-                row["photo_id"],
-                caption=admin_text[:1000],
-                reply_markup=keyboard
-            )
-
-            if len(admin_text) > 1000:
-                bot.send_message(
-                    ADMIN_ID,
-                    admin_text[1000:]
-                )
-        else:
+        try:
             bot.send_message(
-                ADMIN_ID,
-                admin_text,
-                reply_markup=keyboard
+                row["user_id"],
+                TEXT[
+                    get_language(row["user_id"])
+                ]["rejected"]
+            )
+        except Exception:
+            pass
+
+        bot.answer_callback_query(
+            call.id,
+            "Объявление отклонено."
+        )
+
+        return
+
+    if action == "approve":
+        try:
+            message_id = publish_listing(
+                listing_id
             )
 
-    except Exception:
-        logger.exception(
-            "Could not send listing to admin"
-        )
+            conn = get_db()
 
-        bot.send_message(
-            call.message.chat.id,
-            "⚠️ Объявление сохранено, "
-            "но возникла ошибка отправки админу."
-        )
+            conn.execute(
+                """
+                UPDATE listings
+                SET status = 'approved',
+                    published_message_id = ?
+                WHERE id = ?
+                """,
+                (
+                    message_id,
+                    listing_id
+                )
+            )
 
-        bot.answer_callback_query(
-            call.id,
-            "Ошибка отправки админу.",
-            show_alert=True
-        )
+            conn.commit()
+            conn.close()
+
+            try:
+                bot.edit_message_reply_markup(
+                    call.message.chat.id,
+                    call.message.message_id,
+                    reply_markup=None
+                )
+            except Exception:
+                pass
+
+            try:
+                bot.send_message(
+                    row["user_id"],
+                    TEXT[
+                        get_language(row["user_id"])
+                    ]["published"]
+                )
+            except Exception:
+                pass
+
+            bot.answer_callback_query(
+                call.id,
+                "Опубликовано."
+            )
+
+        except Exception as exc:
+            logger.exception(
+                "Publication error for listing %s",
+                listing_id
+            )
+
+            bot.answer_callback_query(
+                call.id,
+                "Ошибка публикации. Проверь канал и права бота.",
+                show_alert=True
+            )
 
         return
 
-    bot.answer_callback_query(
-        call.id,
-        "Отправлено."
-    )
-
-    bot.send_message(
-        call.message.chat.id,
-        tr(user_id, "saved"),
-        reply_markup=main_menu(user_id)
-    )
-
 
 # ============================================================
-# SUPPORT ADMIN
-# ============================================================
-
-def extract_listing_number(text):
-    match = re.search(
-        r"(?:#|№)\s*(\d+)",
-        text
-    )
-
-    if match:
-        return int(match.group(1))
-
-    return None
-
-
-def support_admin_keyboard(user_id):
-    keyboard = types.InlineKeyboardMarkup()
-
-    keyboard.add(
-        types.InlineKeyboardButton(
-            "💬 Ответить",
-            callback_data=f"support_reply:{user_id}"
-        )
-    )
-
-    return keyboard
-
-
-@bot.callback_query_handler(
-    func=lambda call:
-        call.data.startswith("support_reply:")
-)
-def support_reply_callback(call):
-    if call.from_user.id != ADMIN_ID:
-        bot.answer_callback_query(
-            call.id,
-            "Нет доступа.",
-            show_alert=True
-        )
-        return
-
-    try:
-        target_user_id = int(
-            call.data.split(
-                ":",
-                1
-            )[1]
-        )
-    except ValueError:
-        bot.answer_callback_query(
-            call.id,
-            "Ошибка.",
-            show_alert=True
-        )
-        return
-
-    support_replies[ADMIN_ID] = target_user_id
-
-    bot.answer_callback_query(call.id)
-
-    bot.send_message(
-        call.message.chat.id,
-        "💬 Напишите ответ пользователю одним сообщением.",
-        reply_markup=cancel_keyboard(ADMIN_ID)
-    )
-
-
-# ============================================================
-# FORM INPUT
+# TEXT / PHOTO INPUT
 # ============================================================
 
 @bot.message_handler(
-    content_types=[
-        "text",
-        "photo"
-    ]
+    content_types=["text", "photo"]
 )
 def form_input(message):
-    user_id = message.from_user.id
+    save_user(message.from_user)
 
-    save_user(
-        message.from_user
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+
+    text = (
+        message.text.strip()
+        if message.content_type == "text"
+        else ""
     )
 
     # --------------------------------------------------------
-    # ADMIN SUPPORT REPLY
+    # CANCEL
     # --------------------------------------------------------
 
-    if user_id == ADMIN_ID and user_id in support_replies:
-        target_user_id = support_replies.pop(
-            user_id
+    if text == tr(user_id, "cancel"):
+        states.pop(user_id, None)
+
+        bot.send_message(
+            chat_id,
+            tr(user_id, "cancelled"),
+            reply_markup=main_menu(user_id)
         )
-
-        if not message.text:
-            bot.send_message(
-                message.chat.id,
-                "Пожалуйста, отправьте ответ текстом."
-            )
-            support_replies[user_id] = target_user_id
-            return
-
-        try:
-            bot.send_message(
-                target_user_id,
-                tr(
-                    target_user_id,
-                    "support_answer"
-                )
-                + escape(message.text.strip()),
-                reply_markup=main_menu(target_user_id)
-            )
-
-            bot.send_message(
-                message.chat.id,
-                "✅ Ответ отправлен пользователю.",
-                reply_markup=main_menu(ADMIN_ID)
-            )
-
-        except Exception:
-            logger.exception(
-                "Support reply failed"
-            )
-
-            bot.send_message(
-                message.chat.id,
-                "⚠️ Не удалось отправить ответ пользователю."
-            )
 
         return
 
     state = states.get(user_id)
 
     if not state:
+        handle_menu_text(message)
         return
-
-    step = state["step"]
-    data = state["data"]
 
     # --------------------------------------------------------
     # SUPPORT
     # --------------------------------------------------------
 
-    if state.get("mode") == "support" and step == "support_text":
-        if not message.text:
+    if state.get("mode") == "support":
+        if message.content_type != "text":
             bot.send_message(
-                message.chat.id,
-                tr(user_id, "invalid")
+                chat_id,
+                tr(user_id, "invalid_text")
             )
             return
 
-        support_message = message.text.strip()[:3000]
+        support_replies[user_id] = text
 
-        listing_id = extract_listing_number(
-            support_message
+        bot.send_message(
+            ADMIN_ID,
+            (
+                "🆘 <b>Новое сообщение в поддержку</b>\n\n"
+                f"👤 User ID: <code>{user_id}</code>\n"
+                f"💬 {html.escape(text)}"
+            )
         )
 
-        listing_info = None
+        states.pop(user_id, None)
 
-        if listing_id:
-            with get_db() as conn:
-                listing_info = conn.execute(
-                    """
-                    SELECT id, title
-                    FROM listings
-                    WHERE id=? AND user_id=?
-                    """,
-                    (
-                        listing_id,
-                        user_id
-                    )
-                ).fetchone()
-
-        admin_text = (
-            "🆘 <b>НОВОЕ ОБРАЩЕНИЕ В ПОДДЕРЖКУ</b>\n\n"
-            f"👤 Пользователь: "
-            f"{escape(message.from_user.first_name)}\n"
+        bot.send_message(
+            chat_id,
+            tr(user_id, "support_sent"),
+            reply_markup=main_menu(user_id)
         )
-
-        if message.from_user.username:
-            admin_text += (
-                f"📱 Username: "
-                f"@{escape(message.from_user.username)}\n"
-            )
-
-        admin_text += (
-            f"🆔 ID: <code>{user_id}</code>\n"
-        )
-
-        if listing_info:
-            admin_text += (
-                f"📋 Объявление: #{listing_info['id']}\n"
-                f"Название: "
-                f"<b>{escape(listing_info['title'])}</b>\n"
-            )
-
-        admin_text += (
-            "\n💬 <b>Сообщение:</b>\n"
-            f"{escape(support_message)}"
-        )
-
-        try:
-            bot.send_message(
-                ADMIN_ID,
-                admin_text,
-                reply_markup=support_admin_keyboard(user_id)
-            )
-
-            states.pop(
-                user_id,
-                None
-            )
-
-            bot.send_message(
-                message.chat.id,
-                tr(user_id, "support_sent"),
-                reply_markup=main_menu(user_id)
-            )
-
-        except Exception:
-            logger.exception(
-                "Support message failed"
-            )
-
-            bot.send_message(
-                message.chat.id,
-                "⚠️ Не удалось отправить обращение. "
-                "Попробуйте ещё раз."
-            )
-
-        return
-
-    # --------------------------------------------------------
-    # QUICK MODE
-    # --------------------------------------------------------
-
-    if state.get("mode") == "quick":
-
-        if step == "quick_text":
-
-            if not message.text:
-                bot.send_message(
-                    message.chat.id,
-                    tr(user_id, "invalid")
-                )
-                return
-
-            parsed = parse_quick_ad(
-                message.text,
-                data["kind"],
-                message.from_user
-            )
-
-            state["data"] = parsed
-            state["step"] = "preview"
-
-            show_preview(
-                message.chat.id,
-                user_id
-            )
-
-            return
-
-        # ----------------------------------------------------
-        # EDIT QUICK FIELDS
-        # ----------------------------------------------------
-
-        if step.startswith("edit_"):
-
-            field = step.replace(
-                "edit_",
-                "",
-                1
-            )
-
-            # Категория обрабатывается callback.
-            if field == "category":
-                return
-
-            if field == "photo":
-
-                if not message.photo:
-                    bot.send_message(
-                        message.chat.id,
-                        "📷 Отправьте фотографию.",
-                        reply_markup=cancel_keyboard(user_id)
-                    )
-                    return
-
-                data["photo_id"] = (
-                    message.photo[-1].file_id
-                )
-
-                state["step"] = "preview"
-
-                show_preview(
-                    message.chat.id,
-                    user_id
-                )
-
-                return
-
-            if not message.text:
-                bot.send_message(
-                    message.chat.id,
-                    tr(user_id, "invalid")
-                )
-                return
-
-            value = message.text.strip()
-
-            if field == "title":
-                data["title"] = value[:120]
-
-            elif field == "budget":
-                data["budget"] = value[:100]
-
-            elif field == "city":
-                data["city"] = value[:100]
-
-            elif field == "deadline":
-                data["deadline"] = value[:100]
-
-            elif field == "description":
-                data["description"] = value[:3000]
-
-            elif field == "experience":
-                data["experience"] = value[:500]
-
-            elif field == "portfolio":
-                if value.lower() in (
-                    "нет",
-                    "no",
-                    "nu",
-                    "нету"
-                ):
-                    data["portfolio"] = ""
-                else:
-                    data["portfolio"] = value[:1000]
-
-            elif field == "contact":
-                data["contact"] = value[:200]
-
-            state["step"] = "preview"
-
-            show_preview(
-                message.chat.id,
-                user_id
-            )
-
-            return
 
         return
 
@@ -3086,294 +2339,501 @@ def form_input(message):
     # SEARCH
     # --------------------------------------------------------
 
-    if step == "search":
-        if not message.text:
-            bot.send_message(
-                message.chat.id,
-                tr(user_id, "invalid")
-            )
+    if state.get("mode") == "search":
+        if message.content_type != "text":
             return
 
-        kind = data.get(
-            "kind",
-            "order"
-        )
-
-        states.pop(
-            user_id,
-            None
-        )
+        states.pop(user_id, None)
 
         show_search_results(
-            message.chat.id,
+            chat_id,
             user_id,
-            kind,
-            message.text.strip()
+            text
         )
 
         return
 
     # --------------------------------------------------------
-    # OLD FORM
+    # QUICK AD
     # --------------------------------------------------------
 
-    if step == "title":
-        if not message.text:
+    if state.get("mode") != "quick":
+        return
+
+    step = state.get("step")
+    data = state.get("data", {})
+
+    # --------------------------------------------------------
+    # QUICK TEXT
+    # --------------------------------------------------------
+
+    if step == "quick_text":
+        if message.content_type != "text":
             bot.send_message(
-                message.chat.id,
-                tr(user_id, "invalid")
+                chat_id,
+                tr(user_id, "invalid_text")
             )
             return
 
-        data["title"] = (
-            message.text.strip()[:120]
+        parsed = parse_quick_ad(
+            text,
+            message.from_user,
+            data.get("kind", "order")
         )
 
-        state["step"] = "category"
+        state["data"] = parsed
+        state["step"] = "preview"
 
-        bot.send_message(
-            message.chat.id,
-            tr(user_id, "need_category"),
-            reply_markup=category_keyboard(
-                data["kind"]
-            )
+        show_preview(
+            chat_id,
+            user_id
         )
 
         return
 
-    if step == "budget":
-        if not message.text:
-            bot.send_message(
-                message.chat.id,
-                tr(user_id, "invalid")
-            )
-            return
-
-        data["budget"] = (
-            message.text.strip()[:100]
-        )
-
-        state["step"] = "city"
-
-        bot.send_message(
-            message.chat.id,
-            tr(user_id, "need_city"),
-            reply_markup=cancel_keyboard(user_id)
-        )
-
-        return
-
-    if step == "city":
-        if not message.text:
-            bot.send_message(
-                message.chat.id,
-                tr(user_id, "invalid")
-            )
-            return
-
-        data["city"] = (
-            message.text.strip()[:100]
-        )
-
-        if data["kind"] == "order":
-            state["step"] = "deadline"
-
-            bot.send_message(
-                message.chat.id,
-                tr(user_id, "need_deadline"),
-                reply_markup=cancel_keyboard(user_id)
-            )
-        else:
-            state["step"] = "experience"
-
-            bot.send_message(
-                message.chat.id,
-                tr(user_id, "need_experience"),
-                reply_markup=cancel_keyboard(user_id)
-            )
-
-        return
-
-    if step == "deadline":
-        if not message.text:
-            bot.send_message(
-                message.chat.id,
-                tr(user_id, "invalid")
-            )
-            return
-
-        data["deadline"] = (
-            message.text.strip()[:100]
-        )
-
-        state["step"] = "description"
-
-        bot.send_message(
-            message.chat.id,
-            tr(user_id, "need_description"),
-            reply_markup=cancel_keyboard(user_id)
-        )
-
-        return
-
-    if step == "experience":
-        if not message.text:
-            bot.send_message(
-                message.chat.id,
-                tr(user_id, "invalid")
-            )
-            return
-
-        data["experience"] = (
-            message.text.strip()[:500]
-        )
-
-        state["step"] = "description"
-
-        bot.send_message(
-            message.chat.id,
-            tr(user_id, "need_description"),
-            reply_markup=cancel_keyboard(user_id)
-        )
-
-        return
-
-    if step == "description":
-        if not message.text:
-            bot.send_message(
-                message.chat.id,
-                tr(user_id, "invalid")
-            )
-            return
-
-        data["description"] = (
-            message.text.strip()[:2500]
-        )
-
-        state["step"] = "portfolio"
-
-        bot.send_message(
-            message.chat.id,
-            tr(user_id, "need_portfolio"),
-            reply_markup=cancel_keyboard(user_id)
-        )
-
-        return
-
-    if step == "portfolio":
-        if message.photo:
-            data["photo_id"] = (
-                message.photo[-1].file_id
-            )
-
-            data["portfolio"] = (
-                message.caption.strip()[:1000]
-                if message.caption
-                else
-                "Фото портфолио"
-            )
-
-        elif message.text:
-            data["portfolio"] = (
-                message.text.strip()[:1000]
-            )
-
-        else:
-            bot.send_message(
-                message.chat.id,
-                tr(user_id, "invalid")
-            )
-            return
-
-        state["step"] = "contact"
-
-        bot.send_message(
-            message.chat.id,
-            tr(user_id, "need_contact"),
-            reply_markup=cancel_keyboard(user_id)
-        )
-
-        return
+    # --------------------------------------------------------
+    # CONTACT
+    # --------------------------------------------------------
 
     if step == "contact":
-        if not message.text:
+        if message.content_type != "text":
             bot.send_message(
-                message.chat.id,
-                tr(user_id, "invalid")
+                chat_id,
+                tr(user_id, "invalid_text")
             )
             return
 
-        data["contact"] = (
-            message.text.strip()[:200]
+        contact = text.strip()
+
+        if contact and not contact.startswith("@"):
+            if re.fullmatch(
+                r"[A-Za-z0-9_]{4,32}",
+                contact
+            ):
+                contact = "@" + contact
+
+        data["contact"] = contact
+        state["step"] = "preview"
+
+        show_preview(
+            chat_id,
+            user_id
+        )
+
+        return
+
+    # --------------------------------------------------------
+    # EDIT PHOTO
+    # --------------------------------------------------------
+
+    if step == "edit_photo":
+        if message.content_type != "photo":
+            bot.send_message(
+                chat_id,
+                tr(user_id, "invalid_photo")
+            )
+            return
+
+        data["photo_id"] = (
+            message.photo[-1].file_id
         )
 
         state["step"] = "preview"
 
+        bot.send_message(
+            chat_id,
+            tr(user_id, "photo_added")
+        )
+
         show_preview(
-            message.chat.id,
+            chat_id,
             user_id
         )
 
+        return
+
+    # --------------------------------------------------------
+    # EDIT CATEGORY
+    # --------------------------------------------------------
+
+    if step == "edit_category":
+        return
+
+    # --------------------------------------------------------
+    # EDIT FIELDS
+    # --------------------------------------------------------
+
+    if step.startswith("edit_"):
+        field = step.replace(
+            "edit_",
+            "",
+            1
+        )
+
+        if message.content_type != "text":
+            bot.send_message(
+                chat_id,
+                tr(user_id, "invalid_text")
+            )
+            return
+
+        if field in {
+            "title",
+            "description",
+            "budget",
+            "city",
+            "deadline",
+            "experience",
+            "portfolio",
+            "contact",
+        }:
+            data[field] = text.strip()
+
+            state["step"] = "preview"
+
+            show_preview(
+                chat_id,
+                user_id
+            )
+
+        return
+
 
 # ============================================================
-# MENU COMMAND
+# MENU HANDLER
 # ============================================================
 
-@bot.message_handler(commands=["menu"])
-def menu_command(message):
-    save_user(
-        message.from_user
+def handle_menu_text(message):
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+    text = message.text.strip()
+
+    if text == tr(user_id, "submit_ad"):
+        start_quick_form(
+            chat_id,
+            user_id
+        )
+        return
+
+    if text == tr(user_id, "find"):
+        states[user_id] = {
+            "mode": "search",
+            "step": "search",
+            "data": {}
+        }
+
+        bot.send_message(
+            chat_id,
+            tr(user_id, "search_prompt"),
+            reply_markup=cancel_keyboard(user_id)
+        )
+
+        return
+
+    if text == tr(user_id, "mine"):
+        show_my_listings(
+            chat_id,
+            user_id
+        )
+        return
+
+    if text == tr(user_id, "about"):
+        bot.send_message(
+            chat_id,
+            tr(user_id, "about_text"),
+            reply_markup=main_menu(user_id)
+        )
+        return
+
+    if text == tr(user_id, "support"):
+        states[user_id] = {
+            "mode": "support",
+            "step": "support",
+            "data": {}
+        }
+
+        bot.send_message(
+            chat_id,
+            tr(user_id, "support_prompt"),
+            reply_markup=cancel_keyboard(user_id)
+        )
+
+        return
+
+    if text == tr(user_id, "language"):
+        markup = types.InlineKeyboardMarkup()
+
+        markup.row(
+            types.InlineKeyboardButton(
+                "🇷🇺 Русский",
+                callback_data="lang:ru"
+            ),
+            types.InlineKeyboardButton(
+                "🇷🇴 Română",
+                callback_data="lang:ro"
+            )
+        )
+
+        bot.send_message(
+            chat_id,
+            "🌐 Выберите язык / Alege limba:",
+            reply_markup=markup
+        )
+
+        return
+
+
+# ============================================================
+# LANGUAGE CALLBACK
+# ============================================================
+
+@bot.callback_query_handler(
+    func=lambda call: call.data.startswith("lang:")
+)
+def language_callback(call):
+    language = call.data.split(":", 1)[1]
+
+    if language not in TEXT:
+        bot.answer_callback_query(call.id)
+        return
+
+    set_language(
+        call.from_user.id,
+        language
     )
 
-    user_id = message.from_user.id
+    bot.answer_callback_query(
+        call.id,
+        TEXT[language]["language_changed"]
+    )
 
     bot.send_message(
-        message.chat.id,
-        tr(user_id, "choose"),
+        call.message.chat.id,
+        TEXT[language]["welcome"],
+        reply_markup=main_menu(call.from_user.id)
+    )
+
+
+# ============================================================
+# SEARCH
+# ============================================================
+
+def show_search_results(chat_id, user_id, query):
+    query_lower = query.lower().strip()
+
+    conn = get_db()
+
+    rows = conn.execute(
+        """
+        SELECT
+            listings.*,
+            users.username,
+            users.first_name
+        FROM listings
+        LEFT JOIN users
+            ON users.user_id = listings.user_id
+        WHERE listings.status = 'approved'
+        ORDER BY listings.id DESC
+        LIMIT 100
+        """
+    ).fetchall()
+
+    conn.close()
+
+    results = []
+
+    for row in rows:
+        haystack = " ".join([
+            row["title"] or "",
+            row["category"] or "",
+            row["description"] or "",
+            row["city"] or "",
+            row["budget"] or "",
+        ]).lower()
+
+        words = [
+            word
+            for word in re.findall(
+                r"\w+",
+                query_lower,
+                flags=re.UNICODE
+            )
+            if len(word) >= 2
+        ]
+
+        if not words:
+            continue
+
+        if all(word in haystack for word in words):
+            results.append(row)
+
+    if not results:
+        bot.send_message(
+            chat_id,
+            tr(user_id, "nothing_found"),
+            reply_markup=main_menu(user_id)
+        )
+        return
+
+    for row in results[:10]:
+        text = build_public_text(
+            row,
+            limit=3500
+        )
+
+        keyboard = types.InlineKeyboardMarkup()
+
+        if row["username"]:
+            username = row["username"].lstrip("@")
+
+            keyboard.add(
+                types.InlineKeyboardButton(
+                    "💬 Связаться с продавцом",
+                    url=f"https://t.me/{username}"
+                )
+            )
+
+        elif BOT_USERNAME:
+            keyboard.add(
+                types.InlineKeyboardButton(
+                    "💬 Связаться с продавцом",
+                    url=(
+                        f"https://t.me/{BOT_USERNAME}"
+                        f"?start=contact_{row['id']}"
+                    )
+                )
+            )
+
+        try:
+            if row["photo_id"]:
+                bot.send_photo(
+                    chat_id,
+                    row["photo_id"],
+                    caption=text[:1024],
+                    reply_markup=keyboard
+                )
+            else:
+                bot.send_message(
+                    chat_id,
+                    text,
+                    reply_markup=keyboard,
+                    disable_web_page_preview=True
+                )
+        except Exception as exc:
+            logger.warning(
+                "Search result send error: %s",
+                exc
+            )
+
+    bot.send_message(
+        chat_id,
+        "🔎 Поиск завершён.",
         reply_markup=main_menu(user_id)
     )
 
 
 # ============================================================
-# CANCEL COMMAND
+# MY LISTINGS
 # ============================================================
 
-@bot.message_handler(commands=["cancel"])
-def cancel_command(message):
-    user_id = message.from_user.id
+def show_my_listings(chat_id, user_id):
+    conn = get_db()
 
-    states.pop(
-        user_id,
-        None
-    )
+    rows = conn.execute(
+        """
+        SELECT *
+        FROM listings
+        WHERE user_id = ?
+        ORDER BY id DESC
+        LIMIT 20
+        """,
+        (user_id,)
+    ).fetchall()
 
-    support_replies.pop(
-        user_id,
-        None
-    )
+    conn.close()
 
-    save_user(
-        message.from_user
-    )
+    if not rows:
+        bot.send_message(
+            chat_id,
+            tr(user_id, "my_empty"),
+            reply_markup=main_menu(user_id)
+        )
+        return
+
+    for row in rows:
+        status_map = {
+            "pending": "⏳ На модерации",
+            "approved": "✅ Опубликовано",
+            "rejected": "❌ Отклонено",
+        }
+
+        status = status_map.get(
+            row["status"],
+            row["status"]
+        )
+
+        text = (
+            f"📌 <b>{html.escape(row['title'] or '')}</b>\n"
+            f"{status}\n"
+            f"📂 {html.escape(category_label(row['category'] or 'other'))}"
+        )
+
+        bot.send_message(
+            chat_id,
+            text
+        )
 
     bot.send_message(
-        message.chat.id,
-        tr(user_id, "choose"),
+        chat_id,
+        "📋 Готово.",
         reply_markup=main_menu(user_id)
     )
 
 
 # ============================================================
-# START BOT
+# ERROR HANDLER
+# ============================================================
+
+@bot.message_handler(
+    commands=["id"]
+)
+def id_handler(message):
+    bot.send_message(
+        message.chat.id,
+        (
+            f"Chat ID: <code>{message.chat.id}</code>\n"
+            f"User ID: <code>{message.from_user.id}</code>"
+        )
+    )
+
+
+# ============================================================
+# STARTUP
 # ============================================================
 
 if __name__ == "__main__":
-
     init_db()
 
-    logger.info(
-        "===================================="
-    )
+    # Если BOT_USERNAME не указан в Render,
+    # определяем его автоматически.
+    if not BOT_USERNAME:
+        try:
+            me = bot.get_me()
+
+            if me.username:
+                BOT_USERNAME = me.username
+
+                logger.info(
+                    "BOT_USERNAME detected automatically: @%s",
+                    BOT_USERNAME
+                )
+
+        except Exception:
+            logger.exception(
+                "Не удалось автоматически определить BOT_USERNAME."
+            )
+
+    channel_target = get_channel_target()
 
     logger.info(
         "Vitrina Freelance MD started"
@@ -3390,8 +2850,8 @@ if __name__ == "__main__":
     )
 
     logger.info(
-        "ADMIN_ID = %s",
-        ADMIN_ID
+        "CHANNEL_TARGET = %s",
+        channel_target
     )
 
     logger.info(
@@ -3400,16 +2860,14 @@ if __name__ == "__main__":
     )
 
     logger.info(
-        "DB_PATH = %s",
-        DB_PATH
-    )
-
-    logger.info(
-        "===================================="
+        "ADMIN_ID = %s",
+        ADMIN_ID
     )
 
     bot.infinity_polling(
         skip_pending=True,
-        timeout=30,
-        long_polling_timeout=30
-)
+        allowed_updates=[
+            "message",
+            "callback_query"
+        ]
+    )
