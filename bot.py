@@ -1,4 +1,5 @@
 import datetime
+import time
 import telebot
 from telebot import types
 
@@ -11,10 +12,11 @@ ADMIN_ID = 7419021481
 # Юзернейм твоего публичного канала
 CHANNEL_ID = '@vitrina_freelance_md' 
 
-# НАСТОЯЩИЙ юзернейм твоего бота
+# Настоящий юзернейм твоего бота
 BOT_USERNAME = '@vitrina_md_market_bot' 
 
-bot = telebot.TeleBot(TOKEN)
+# Инициализация бота с настройками стабильности сессии
+bot = telebot.TeleBot(TOKEN, threaded=True)
 
 # Словарь для отслеживания шагов пользователей
 user_states = {}
@@ -38,6 +40,30 @@ def get_latest_trends():
     )
     return trends_text
 
+# Безопасная функция отправки сообщения админу с автоповтором при таймаутах
+def safe_send_to_admin(text, markup):
+    for attempt in range(1, 4):
+        try:
+            bot.send_message(ADMIN_ID, text, parse_mode='Markdown', reply_markup=markup)
+            print("Уведомление администратору успешно доставлено.")
+            return True
+        except Exception as e:
+            print(f"Попытка отправки админу {attempt} не удалась: {e}")
+            time.sleep(2) # Пауза перед повторной попыткой
+    return False
+
+# Безопасная функция публикации в канал с автоповтором
+def safe_send_to_channel(text, markup):
+    for attempt in range(1, 4):
+        try:
+            bot.send_message(CHANNEL_ID, text, parse_mode='Markdown', reply_markup=markup)
+            print("Пост успешно опубликован в канале.")
+            return True
+        except Exception as e:
+            print(f"Попытка публикации в канал {attempt} не удалась: {e}")
+            time.sleep(2)
+    return False
+
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     user_id = message.from_user.id
@@ -57,7 +83,10 @@ def send_welcome(message):
         "Выберите нужное действие в меню ниже:"
     )
     
-    bot.send_message(message.chat.id, welcome_text, parse_mode='Markdown', reply_markup=markup)
+    try:
+        bot.send_message(message.chat.id, welcome_text, parse_mode='Markdown', reply_markup=markup)
+    except Exception as e:
+        print(f"Ошибка отправки приветствия: {e}")
 
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
@@ -106,7 +135,6 @@ def handle_message(message):
     else:
         if current_state == 'waiting_for_designer_portfolio':
             save_to_database("RESUME / SPECIALIST", username, text)
-            
             admin_text = f"🎨 **Новое резюме!**\nОт: {username} (ID: `{user_id}`)\n\n{text}"
             
             admin_markup = types.InlineKeyboardMarkup(row_width=2)
@@ -115,20 +143,15 @@ def handle_message(message):
                 types.InlineKeyboardButton("❌ Отклонить", callback_data=f"reject_des_{user_id}")
             )
             
-            try:
-                bot.send_message(ADMIN_ID, admin_text, parse_mode='Markdown', reply_markup=admin_markup)
-            except Exception as e:
-                print(f"Ошибка отправки администратору: {e}")
+            if safe_send_to_admin(admin_text, admin_markup):
+                bot.send_message(message.chat.id, "✅ Ваше резюме успешно отправлено администратору на модерацию!")
+            else:
+                bot.send_message(message.chat.id, "⚠️ На сервере временная задержка связи. Пожалуйста, нажмите /start и отправьте заявку еще раз.")
             
-            bot.send_message(
-                message.chat.id, 
-                "✅ Ваше резюме успешно отправлено администратору на модерацию!"
-            )
             user_states[user_id] = None
             
         elif current_state == 'waiting_for_seller_task':
             save_to_database("ORDER / CLIENT", username, text)
-            
             admin_text = f"🛍 **Новый заказ!**\nОт: {username} (ID: `{user_id}`)\n\n{text}"
             
             admin_markup = types.InlineKeyboardMarkup(row_width=2)
@@ -137,15 +160,11 @@ def handle_message(message):
                 types.InlineKeyboardButton("❌ Отклонить", callback_data=f"reject_sel_{user_id}")
             )
             
-            try:
-                bot.send_message(ADMIN_ID, admin_text, parse_mode='Markdown', reply_markup=admin_markup)
-            except Exception as e:
-                print(f"Ошибка отправки администратору: {e}")
+            if safe_send_to_admin(admin_text, admin_markup):
+                bot.send_message(message.chat.id, "✅ Ваш заказ успешно отправлен администратору на проверку!")
+            else:
+                bot.send_message(message.chat.id, "⚠️ На сервере временная задержка связи. Пожалуйста, нажмите /start и отправьте заказ еще раз.")
             
-            bot.send_message(
-                message.chat.id, 
-                "✅ Ваш заказ успешно отправлен администратору на проверку!"
-            )
             user_states[user_id] = None
             
         else:
@@ -156,42 +175,67 @@ def handle_message(message):
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
-    data = call.data
-    parts = data.split('_')
-    action = parts[0]
-    target_type = parts[1]
-    target_user_id = int(parts[2])
-    
-    if action == 'approve':
-        # Создаем инлайн-кнопку со ссылкой на бота прямо под постом в канале
-        channel_markup = types.InlineKeyboardMarkup()
-        bot_url = f"https://t.me/{BOT_USERNAME.replace('@', '')}"
-        channel_markup.add(types.InlineKeyboardButton("🤖 Разместить свое объявление в боте", url=bot_url))
+    try:
+        data = call.data
+        parts = data.split('_')
+        action = parts[0]
+        target_type = parts[1]
+        target_user_id = int(parts[2])
+        
+        if action == 'approve':
+            channel_markup = types.InlineKeyboardMarkup()
+            bot_url = f"https://t.me/{BOT_USERNAME.replace('@', '')}"
+            channel_markup.add(types.InlineKeyboardButton("🤖 Разместить свое объявление в боте", url=bot_url))
 
-        if target_type == 'des':
-            bot.send_message(target_user_id, "🎉 Ваше резюме одобрено и опубликовано!")
-            channel_post = f"📢 **Новое резюме на бирже!**\n\n{call.message.text.replace('🎨 **Новое резюме!**', '').strip()}"
-        elif target_type == 'sel':
-            bot.send_message(target_user_id, "🎉 Ваш заказ одобрен и опубликован!")
-            channel_post = f"📢 **Новый заказ на бирже!**\n\n{call.message.text.replace('🛍 **Новый заказ!**', '').strip()}"
-        
-        # Отправка в публичный канал с прикрепленной кнопкой-ссылкой
-        try:
-            bot.send_message(CHANNEL_ID, channel_post, parse_mode='Markdown', reply_markup=channel_markup)
-            print("Заявка успешно опубликована в канале с рабочей кнопкой на бота!")
-        except Exception as e:
-            print(f"Ошибка публикации в канал: {e}")
+            if target_type == 'des':
+                try:
+                    bot.send_message(target_user_id, "🎉 Ваше резюме одобрено и опубликовано!")
+                except Exception:
+                    pass
+                channel_post = f"📢 **Новое резюме на бирже!**\n\n{call.message.text.replace('🎨 **Новое резюме!**', '').strip()}"
+            elif target_type == 'sel':
+                try:
+                    bot.send_message(target_user_id, "🎉 Ваш заказ одобрен и опубликован!")
+                except Exception:
+                    pass
+                channel_post = f"📢 **Новый заказ на бирже!**\n\n{call.message.text.replace('🛍 **Новый заказ!**', '').strip()}"
             
-        bot.edit_message_text(text=call.message.text + "\n\n**[СТАТУС: ОДОБРЕНО И ОПУБЛИКОВАНО ✅]**", chat_id=call.message.chat.id, message_id=call.message.message_id, parse_mode='Markdown')
-        
-    elif action == 'reject':
-        if target_type == 'des':
-            bot.send_message(target_user_id, "⚠️ Ваше резюме отклонено модератором.")
-        else:
-            bot.send_message(target_user_id, "⚠️ Ваш заказ отклонен модератором.")
+            safe_send_to_channel(channel_post, channel_markup)
+                
+            bot.edit_message_text(
+                text=call.message.text + "\n\n**[СТАТУС: ОДОБРЕНО И ОПУБЛИКОВАНО ✅]**", 
+                chat_id=call.message.chat.id, 
+                message_id=call.message.message_id, 
+                parse_mode='Markdown'
+            )
             
-        bot.edit_message_text(text=call.message.text + "\n\n**[СТАТУС: ОТКЛОНЕНО ❌]**", chat_id=call.message.chat.id, message_id=call.message.message_id, parse_mode='Markdown')
+        elif action == 'reject':
+            if target_type == 'des':
+                try:
+                    bot.send_message(target_user_id, "⚠️ Ваше резюме отклонено модератором.")
+                except Exception:
+                    pass
+            else:
+                try:
+                    bot.send_message(target_user_id, "⚠️ Ваш заказ отклонен модератором.")
+                except Exception:
+                    pass
+                
+            bot.edit_message_text(
+                text=call.message.text + "\n\n**[СТАТУС: ОТКЛОНЕНО ❌]**", 
+                chat_id=call.message.chat.id, 
+                message_id=call.message.message_id, 
+                parse_mode='Markdown'
+            )
+    except Exception as e:
+        print(f"Ошибка в обработчике кнопок: {e}")
 
 if __name__ == '__main__':
-    print("Биржа фриланса запущена...")
-    bot.infinity_polling()
+    print("Биржа фриланса запущена в стабильном режиме...")
+    # Бесконечный опрос с защищенными тайм-аутами соединения
+    while True:
+        try:
+            bot.infinity_polling(timeout=60, long_polling_timeout=60, interval=1)
+        except Exception as e:
+            print(дача_ошибки_ polling := f"Сбой соединения с Telegram: {e}. Переподключение через 5 секунд...")
+            time.sleep(5)
