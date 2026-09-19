@@ -4,7 +4,7 @@ import telebot
 from telebot import types
 
 # Твой токен от BotFather
-TOKEN = '8724559334:AAEpp2ABawjVc8qZ1xOaqoYVTmWo97yKtGc'
+TOKEN = '8724559334:AAGu2ncPaICSI2rDQvMs1HTTBgOXBD-gArE'
 
 # Твой Telegram ID администратора
 ADMIN_ID = 7419021481
