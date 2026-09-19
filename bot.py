@@ -11,6 +11,9 @@ ADMIN_ID = 7419021481
 # Юзернейм твоего публичного канала
 CHANNEL_ID = '@vitrina_freelance_md' 
 
+# Юзернейм твоего бота (будет автоматически добавляться под каждым постом в канале)
+BOT_USERNAME = '@Vitrina_Freelance_bot' # Замени на точный юзернейм твоего бота, если он отличается
+
 bot = telebot.TeleBot(TOKEN)
 
 # Словарь для отслеживания шагов пользователей
@@ -166,15 +169,15 @@ def callback_query(call):
     if action == 'approve':
         if target_type == 'des':
             bot.send_message(target_user_id, "🎉 Ваше резюме одобрено и опубликовано!")
-            channel_post = f"📢 **Новое резюме на бирже!**\n\n{call.message.text.replace('🎨 **Новое резюме!**', '').strip()}"
+            channel_post = f"📢 **Новое резюме на бирже!**\n\n{call.message.text.replace('🎨 **Новое резюме!**', '').strip()}\n\n───────────────────\n🤖 *Хотите разместить свое резюме или заказ? Переходите в бота:* {BOT_USERNAME}"
         elif target_type == 'sel':
             bot.send_message(target_user_id, "🎉 Ваш заказ одобрен и опубликован!")
-            channel_post = f"📢 **Новый заказ на бирже!**\n\n{call.message.text.replace('🛍 **Новый заказ!**', '').strip()}"
+            channel_post = f"📢 **Новый заказ на бирже!**\n\n{call.message.text.replace('🛍 **Новый заказ!**', '').strip()}\n\n───────────────────\n🤖 *Хотите разместить свое резюме или заказ? Переходите в бота:* {BOT_USERNAME}"
         
         # Отправка в публичный канал
         try:
             bot.send_message(CHANNEL_ID, channel_post, parse_mode='Markdown')
-            print("Заявка успешно опубликована в канале!")
+            print("Заявка успешно опубликована в канале с активной ссылкой на бота!")
         except Exception as e:
             print(f"Ошибка публикации в канал: {e}")
             
