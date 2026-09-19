@@ -2249,20 +2249,7 @@ def publish_listing(listing_id):
                 )
             )
         )
-
-    post_url = channel_post_url(
-        post_message.message_id
-    )
-
-    if post_url:
-        keyboard.add(
-            types.InlineKeyboardButton(
-                "💬 Комментировать",
-                url=post_url
-            )
-        )
-
-    if BOT_USERNAME:
+    if if BOT_USERNAME:
         keyboard.add(
             types.InlineKeyboardButton(
                 "➕ Подать объявление",
