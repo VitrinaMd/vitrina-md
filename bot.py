@@ -3,8 +3,6 @@ import re
 import html
 import sqlite3
 import logging
-import time
-from pathlib import Path
 from urllib.parse import quote
 from datetime import datetime
 
@@ -90,260 +88,7 @@ support_replies = {}
 # TEXT
 # ============================================================
 
-TEXT = {
-    "ru": {
-        "welcome": (
-            "👋 <b>Добро пожаловать в Vitrina Freelance MD!</b>\n\n"
-            "Здесь можно найти специалиста или предложить свои услуги."
-        ),
-
-        "choose_ad_type": "Выберите тип объявления:",
-
-        "need_specialist": "🔎 Мне нужен специалист",
-        "offer_service": "👨‍💻 Предлагаю свои услуги",
-
-        "need_one_message": (
-            "📝 <b>Напишите объявление одним сообщением.</b>\n\n"
-            "Просто расскажите:\n"
-            "• что нужно сделать;\n"
-            "• город;\n"
-            "• бюджет;\n"
-            "• сроки;\n"
-            "• опыт или требования;\n"
-            "• дополнительную информацию.\n\n"
-            "Я автоматически определю категорию и основные данные."
-        ),
-
-        "offer_one_message": (
-            "📝 <b>Напишите о своей услуге одним сообщением.</b>\n\n"
-            "Например:\n"
-            "• какую услугу предлагаете;\n"
-            "• город;\n"
-            "• цена;\n"
-            "• опыт;\n"
-            "• портфолио;\n"
-            "• дополнительные условия.\n\n"
-            "Я автоматически подготовлю объявление."
-        ),
-
-        "preview": "👀 <b>Предпросмотр объявления</b>\n\n",
-
-        "edit": "✏️ Изменить",
-        "add_photo": "📷 Добавить фото",
-        "delete_photo": "🗑 Удалить фото",
-        "publish": "✅ Отправить на модерацию",
-        "cancel": "❌ Отменить",
-
-        "choose_edit": "Что хотите изменить?",
-
-        "edit_title": "Введите новый заголовок:",
-        "edit_description": "Введите новое описание:",
-        "edit_budget": "Введите новый бюджет:",
-        "edit_city": "Введите новый город:",
-        "edit_deadline": "Введите новый срок:",
-        "edit_experience": "Введите информацию об опыте:",
-        "edit_portfolio": "Введите ссылку на портфолио:",
-        "edit_contact": (
-            "Введите Telegram username для связи.\n"
-            "Например: @username"
-        ),
-
-        "choose_category": "Выберите категорию:",
-
-        "send_photo": "Отправьте фотографию объявления.",
-        "photo_added": "📷 Фото добавлено.",
-        "photo_deleted": "Фото удалено.",
-
-        "cancelled": "❌ Создание объявления отменено.",
-
-        "sent_moderation": (
-            "✅ Объявление отправлено на модерацию.\n\n"
-            "После проверки оно появится в канале."
-        ),
-
-        "published": (
-            "📢 <b>Объявление опубликовано в канале!</b>"
-        ),
-
-        "rejected": (
-            "❌ Ваше объявление не прошло модерацию."
-        ),
-
-        "find": "🔎 Найти объявление",
-        "mine": "📋 Мои объявления",
-        "about": "ℹ️ О проекте",
-        "support": "🆘 Поддержка",
-        "language": "🌐 Язык",
-
-        "submit_ad": "➕ Подать объявление",
-        "invite": "👥 Пригласить друзей",
-
-        "search_prompt": (
-            "🔎 Напишите, что вы ищете.\n\n"
-            "Например:\n"
-            "<i>дизайнер</i>\n"
-            "<i>монтажник Кишинёв</i>\n"
-            "<i>создание сайта</i>"
-        ),
-
-        "nothing_found": "Ничего подходящего не найдено.",
-
-        "my_empty": "У вас пока нет объявлений.",
-
-        "support_prompt": (
-            "🆘 Напишите свой вопрос одним сообщением."
-        ),
-
-        "support_sent": (
-            "✅ Сообщение отправлено администратору."
-        ),
-
-        "admin_new": "🆕 <b>Новое объявление на модерации</b>",
-
-        "approve": "✅ Одобрить",
-        "reject": "❌ Отклонить",
-
-        "approved_admin": "✅ Опубликовано",
-        "rejected_admin": "❌ Отклонено",
-
-        "contact_seller": "💬 Связаться с продавцом",
-
-        "submit_again": "➕ Подать объявление",
-
-        "contact_request": (
-            "📩 <b>Новый запрос по вашему объявлению!</b>\n\n"
-            "Пользователь хочет связаться с вами."
-        ),
-
-        "no_contact": (
-            "У вас не указан Telegram username.\n"
-            "Пожалуйста, укажите его для связи."
-        ),
-
-        "invalid_photo": "Пожалуйста, отправьте фотографию.",
-
-        "invalid_text": "Пожалуйста, отправьте текст.",
-
-        "language_changed": "Язык изменён.",
-
-        "about_text": (
-            "ℹ️ <b>Vitrina Freelance MD</b>\n\n"
-            "Площадка для поиска специалистов и размещения услуг "
-            "в Молдове."
-        ),
-    },
-
-    "ro": {
-        "welcome": (
-            "👋 <b>Bun venit la Vitrina Freelance MD!</b>\n\n"
-            "Aici poți găsi un specialist sau îți poți oferi serviciile."
-        ),
-
-        "choose_ad_type": "Alege tipul anunțului:",
-
-        "need_specialist": "🔎 Am nevoie de un specialist",
-        "offer_service": "👨‍💻 Ofer servicii",
-
-        "need_one_message": (
-            "📝 <b>Scrie anunțul într-un singur mesaj.</b>\n\n"
-            "Spune ce trebuie făcut, orașul, bugetul și termenul."
-        ),
-
-        "offer_one_message": (
-            "📝 <b>Scrie despre serviciul tău într-un singur mesaj.</b>\n\n"
-            "Spune ce serviciu oferi, orașul, prețul și experiența."
-        ),
-
-        "preview": "👀 <b>Previzualizarea anunțului</b>\n\n",
-
-        "edit": "✏️ Modifică",
-        "add_photo": "📷 Adaugă fotografie",
-        "delete_photo": "🗑 Șterge fotografia",
-        "publish": "✅ Trimite pentru moderare",
-        "cancel": "❌ Anulează",
-
-        "choose_edit": "Ce dorești să modifici?",
-
-        "edit_title": "Introdu noul titlu:",
-        "edit_description": "Introdu noua descriere:",
-        "edit_budget": "Introdu noul buget:",
-        "edit_city": "Introdu noul oraș:",
-        "edit_deadline": "Introdu noul termen:",
-        "edit_experience": "Introdu experiența:",
-        "edit_portfolio": "Introdu linkul portofoliului:",
-        "edit_contact": "Introdu username-ul Telegram:",
-
-        "choose_category": "Alege categoria:",
-
-        "send_photo": "Trimite fotografia anunțului.",
-        "photo_added": "📷 Fotografia a fost adăugată.",
-        "photo_deleted": "Fotografia a fost ștearsă.",
-
-        "cancelled": "❌ Crearea anunțului a fost anulată.",
-
-        "sent_moderation": (
-            "✅ Anunțul a fost trimis pentru moderare."
-        ),
-
-        "published": (
-            "📢 <b>Anunțul a fost publicat pe canal!</b>"
-        ),
-
-        "rejected": "❌ Anunțul nu a trecut moderarea.",
-
-        "find": "🔎 Găsește un anunț",
-        "mine": "📋 Anunțurile mele",
-        "about": "ℹ️ Despre proiect",
-        "support": "🆘 Suport",
-        "language": "🌐 Limbă",
-
-        "submit_ad": "➕ Publică un anunț",
-        "invite": "👥 Invită prieteni",
-
-        "search_prompt": "🔎 Scrie ce cauți.",
-
-        "nothing_found": "Nu au fost găsite rezultate.",
-
-        "my_empty": "Nu ai încă anunțuri.",
-
-        "support_prompt": "🆘 Scrie întrebarea ta.",
-
-        "support_sent": "✅ Mesajul a fost trimis administratorului.",
-
-        "admin_new": "🆕 <b>Anunț nou pentru moderare</b>",
-
-        "approve": "✅ Aprobă",
-        "reject": "❌ Respinge",
-
-        "approved_admin": "✅ Publicat",
-        "rejected_admin": "❌ Respins",
-
-        "contact_seller": "💬 Contactează vânzătorul",
-
-        "submit_again": "➕ Publică un anunț",
-
-        "contact_request": (
-            "📩 <b>Cerere nouă pentru anunțul tău!</b>"
-        ),
-
-        "no_contact": (
-            "Nu ai username Telegram. "
-            "Introdu-l pentru contact."
-        ),
-
-        "invalid_photo": "Trimite o fotografie.",
-
-        "invalid_text": "Trimite un text.",
-
-        "language_changed": "Limba a fost schimbată.",
-
-        "about_text": (
-            "ℹ️ <b>Vitrina Freelance MD</b>\n\n"
-            "Platformă pentru găsirea specialiștilor și "
-            "promovarea serviciilor în Moldova."
-        ),
-    }
-}
+TEXT = {'ru': {'welcome': '👋 <b>Добро пожаловать в Vitrina Freelance MD!</b>\n\nЗдесь можно найти специалиста или предложить свои услуги.', 'choose_ad_type': 'Выберите тип объявления:', 'need_specialist': '🔎 Мне нужен специалист', 'offer_service': '👨\u200d💻 Предлагаю свои услуги', 'need_one_message': '📝 <b>Напишите объявление одним сообщением.</b>\n\nПросто расскажите:\n• что нужно сделать;\n• город;\n• бюджет;\n• сроки;\n• опыт или требования;\n• дополнительную информацию.\n\nЯ автоматически определю категорию и основные данные.', 'offer_one_message': '📝 <b>Напишите о своей услуге одним сообщением.</b>\n\nНапример:\n• какую услугу предлагаете;\n• город;\n• цена;\n• опыт;\n• портфолио;\n• дополнительные условия.\n\nЯ автоматически подготовлю объявление.', 'preview': '👀 <b>Предпросмотр объявления</b>\n\n', 'edit': '✏️ Изменить', 'add_photo': '📷 Добавить фото', 'delete_photo': '🗑 Удалить фото', 'publish': '✅ Отправить на модерацию', 'cancel': '❌ Отменить', 'choose_edit': 'Что хотите изменить?', 'edit_title': 'Введите новый заголовок:', 'edit_description': 'Введите новое описание:', 'edit_budget': 'Введите новый бюджет:', 'edit_city': 'Введите новый город:', 'edit_deadline': 'Введите новый срок:', 'edit_experience': 'Введите информацию об опыте:', 'edit_portfolio': 'Введите ссылку на портфолио:', 'edit_contact': 'Введите Telegram username для связи.\nНапример: @username', 'choose_category': 'Выберите категорию:', 'send_photo': 'Отправьте фотографию объявления.', 'photo_added': '📷 Фото добавлено.', 'photo_deleted': 'Фото удалено.', 'cancelled': '❌ Создание объявления отменено.', 'sent_moderation': '✅ Объявление отправлено на модерацию.\n\nПосле проверки оно появится в канале.', 'published': '📢 <b>Объявление опубликовано в канале!</b>', 'rejected': '❌ Ваше объявление не прошло модерацию.', 'find': '🔎 Найти объявление', 'mine': '📋 Мои объявления', 'about': 'ℹ️ О проекте', 'support': '🆘 Поддержка', 'language': '🌐 Язык', 'submit_ad': '➕ Подать объявление', 'invite': '👥 Пригласить друзей', 'search_prompt': '🔎 Напишите, что вы ищете.\n\nНапример:\n<i>дизайнер</i>\n<i>монтажник Кишинёв</i>\n<i>создание сайта</i>', 'nothing_found': 'Ничего подходящего не найдено.', 'my_empty': 'У вас пока нет объявлений.', 'support_prompt': '🆘 Напишите свой вопрос одним сообщением.', 'support_sent': '✅ Сообщение отправлено администратору.', 'admin_new': '🆕 <b>Новое объявление на модерации</b>', 'approve': '✅ Одобрить', 'reject': '❌ Отклонить', 'approved_admin': '✅ Опубликовано', 'rejected_admin': '❌ Отклонено', 'contact_seller': '💬 Связаться с продавцом', 'submit_again': '➕ Подать объявление', 'contact_request': '📩 <b>Новый запрос по вашему объявлению!</b>\n\nПользователь хочет связаться с вами.', 'no_contact': 'У вас не указан Telegram username.\nПожалуйста, укажите его для связи.', 'invalid_photo': 'Пожалуйста, отправьте фотографию.', 'invalid_text': 'Пожалуйста, отправьте текст.', 'language_changed': 'Язык изменён.', 'about_text': 'ℹ️ <b>Vitrina Freelance MD</b>\n\nПлощадка для поиска специалистов и размещения услуг в Молдове.', 'search_done': '🔎 Поиск завершён.', 'status_pending': '⏳ На модерации', 'status_approved': '✅ Опубликовано', 'status_rejected': '❌ Отклонено', 'done': '📋 Готово.', 'stats_title': '📊 <b>Моя статистика</b>', 'friends': '👥 Приглашено друзей', 'my_ads': '📝 Моих объявлений', 'published_count': '✅ Опубликовано', 'bump_credits': '⬆️ Кредитов поднятия', 'vip_credits': '⭐ VIP-кредитов', 'invite_title': '👥 <b>Пригласить друзей</b>', 'personal_link': 'Ваша персональная ссылка', 'invited': 'Приглашено', 'rewards': '🎁 Награды: 3 друга = 1 поднятие, 5 = ещё 2 поднятия, 10 = 1 VIP.', 'share_invite': 'Отправьте ссылку знакомым, которым нужны работа, клиенты или специалисты.', 'ref_unavailable': 'Ссылка приглашения временно недоступна.', 'bump_button': '⬆️ Поднять', 'vip_button': '⭐ VIP', 'no_bump': 'У вас нет кредитов поднятия.', 'no_vip': 'У вас нет VIP-кредитов.', 'bumped': '⬆️ Объявление поднято в канале.', 'vip_used': '⭐ VIP-публикация размещена в канале.', 'not_yours': 'Это объявление вам недоступно.', 'only_published': 'Действие доступно только для опубликованных объявлений.', 'action_error': 'Не удалось выполнить действие. Попробуйте позже.', 'phone_invalid': 'Введите корректный номер телефона.', 'missing_data': '❗ Не хватает данных для объявления.', 'language_choose': '🌐 Выберите язык:', 'share_ref': '📤 Поделиться в Telegram', 'field_title': 'Заголовок', 'field_description': 'Описание', 'field_category': 'Категория', 'field_budget': 'Бюджет', 'field_city': 'Город', 'field_deadline': 'Срок', 'field_experience': 'Опыт', 'field_portfolio': 'Портфолио', 'field_phone': 'Телефон', 'field_contact': 'Контакт', 'back': '↩️ Назад', 'kind_need': '🔎 Нужен специалист', 'kind_offer': '👨\u200d💻 Предлагаю услугу', 'label_category': 'Категория', 'label_budget': 'Бюджет', 'label_city': 'Город', 'label_deadline': 'Срок', 'label_experience': 'Опыт', 'label_phone': 'Телефон', 'label_description': 'Описание', 'label_portfolio': 'Портфолио', 'label_contact': 'Контакт', 'untitled': 'Без названия'}, 'ro': {'welcome': '👋 <b>Bun venit la Vitrina Freelance MD!</b>\n\nAici poți găsi un specialist sau îți poți oferi serviciile.', 'choose_ad_type': 'Alege tipul anunțului:', 'need_specialist': '🔎 Am nevoie de un specialist', 'offer_service': '👨\u200d💻 Ofer servicii', 'need_one_message': '📝 <b>Scrie anunțul într-un singur mesaj.</b>\n\nSpune ce trebuie făcut, orașul, bugetul și termenul.', 'offer_one_message': '📝 <b>Scrie despre serviciul tău într-un singur mesaj.</b>\n\nSpune ce serviciu oferi, orașul, prețul și experiența.', 'preview': '👀 <b>Previzualizarea anunțului</b>\n\n', 'edit': '✏️ Modifică', 'add_photo': '📷 Adaugă fotografie', 'delete_photo': '🗑 Șterge fotografia', 'publish': '✅ Trimite pentru moderare', 'cancel': '❌ Anulează', 'choose_edit': 'Ce dorești să modifici?', 'edit_title': 'Introdu noul titlu:', 'edit_description': 'Introdu noua descriere:', 'edit_budget': 'Introdu noul buget:', 'edit_city': 'Introdu noul oraș:', 'edit_deadline': 'Introdu noul termen:', 'edit_experience': 'Introdu experiența:', 'edit_portfolio': 'Introdu linkul portofoliului:', 'edit_contact': 'Introdu username-ul Telegram:', 'choose_category': 'Alege categoria:', 'send_photo': 'Trimite fotografia anunțului.', 'photo_added': '📷 Fotografia a fost adăugată.', 'photo_deleted': 'Fotografia a fost ștearsă.', 'cancelled': '❌ Crearea anunțului a fost anulată.', 'sent_moderation': '✅ Anunțul a fost trimis pentru moderare.', 'published': '📢 <b>Anunțul a fost publicat pe canal!</b>', 'rejected': '❌ Anunțul nu a trecut moderarea.', 'find': '🔎 Găsește un anunț', 'mine': '📋 Anunțurile mele', 'about': 'ℹ️ Despre proiect', 'support': '🆘 Suport', 'language': '🌐 Limbă', 'submit_ad': '➕ Publică un anunț', 'invite': '👥 Invită prieteni', 'search_prompt': '🔎 Scrie ce cauți.', 'nothing_found': 'Nu au fost găsite rezultate.', 'my_empty': 'Nu ai încă anunțuri.', 'support_prompt': '🆘 Scrie întrebarea ta.', 'support_sent': '✅ Mesajul a fost trimis administratorului.', 'admin_new': '🆕 <b>Anunț nou pentru moderare</b>', 'approve': '✅ Aprobă', 'reject': '❌ Respinge', 'approved_admin': '✅ Publicat', 'rejected_admin': '❌ Respins', 'contact_seller': '💬 Contactează vânzătorul', 'submit_again': '➕ Publică un anunț', 'contact_request': '📩 <b>Cerere nouă pentru anunțul tău!</b>', 'no_contact': 'Nu ai username Telegram. Introdu-l pentru contact.', 'invalid_photo': 'Trimite o fotografie.', 'invalid_text': 'Trimite un text.', 'language_changed': 'Limba a fost schimbată.', 'about_text': 'ℹ️ <b>Vitrina Freelance MD</b>\n\nPlatformă pentru găsirea specialiștilor și promovarea serviciilor în Moldova.', 'search_done': '🔎 Căutarea s-a încheiat.', 'status_pending': '⏳ În moderare', 'status_approved': '✅ Publicat', 'status_rejected': '❌ Respins', 'done': '📋 Gata.', 'stats_title': '📊 <b>Statisticile mele</b>', 'friends': '👥 Prieteni invitați', 'my_ads': '📝 Anunțurile mele', 'published_count': '✅ Publicate', 'bump_credits': '⬆️ Credite de ridicare', 'vip_credits': '⭐ Credite VIP', 'invite_title': '👥 <b>Invită prieteni</b>', 'personal_link': 'Linkul tău personal', 'invited': 'Invitați', 'rewards': '🎁 Recompense: 3 prieteni = 1 ridicare, 5 = încă 2 ridicări, 10 = 1 VIP.', 'share_invite': 'Trimite linkul celor care caută lucru, clienți sau specialiști.', 'ref_unavailable': 'Linkul de invitație nu este disponibil momentan.', 'bump_button': '⬆️ Ridică', 'vip_button': '⭐ VIP', 'no_bump': 'Nu ai credite de ridicare.', 'no_vip': 'Nu ai credite VIP.', 'bumped': '⬆️ Anunțul a fost ridicat în canal.', 'vip_used': '⭐ Publicarea VIP a fost plasată în canal.', 'not_yours': 'Acest anunț nu îți este disponibil.', 'only_published': 'Acțiunea este disponibilă doar pentru anunțurile publicate.', 'action_error': 'Acțiunea nu a putut fi efectuată. Încearcă din nou.', 'phone_invalid': 'Introdu un număr de telefon valid.', 'missing_data': '❗ Lipsesc date pentru anunț.', 'language_choose': '🌐 Alege limba:', 'share_ref': '📤 Distribuie pe Telegram', 'field_title': 'Titlu', 'field_description': 'Descriere', 'field_category': 'Categorie', 'field_budget': 'Buget', 'field_city': 'Oraș', 'field_deadline': 'Termen', 'field_experience': 'Experiență', 'field_portfolio': 'Portofoliu', 'field_phone': 'Telefon', 'field_contact': 'Contact', 'back': '↩️ Înapoi', 'kind_need': '🔎 Am nevoie de un specialist', 'kind_offer': '👨\u200d💻 Ofer servicii', 'label_category': 'Categorie', 'label_budget': 'Buget', 'label_city': 'Oraș', 'label_deadline': 'Termen', 'label_experience': 'Experiență', 'label_phone': 'Telefon', 'label_description': 'Descriere', 'label_portfolio': 'Portofoliu', 'label_contact': 'Contact', 'untitled': 'Fără titlu'}, 'en': {'welcome': '👋 <b>Welcome to Vitrina Freelance MD!</b>\n\nFind a specialist or offer your services in Moldova.', 'choose_ad_type': 'Choose listing type:', 'need_specialist': '🔎 I need a specialist', 'offer_service': '👨\u200d💻 I offer services', 'need_one_message': '📝 <b>Write your listing in one message.</b>\n\nDescribe what you need, city, budget, deadline and requirements.', 'offer_one_message': '📝 <b>Describe your service in one message.</b>\n\nInclude the service, city, price, experience and other useful details.', 'preview': '👀 <b>Listing preview</b>\n\n', 'edit': '✏️ Edit', 'add_photo': '📷 Add photo', 'delete_photo': '🗑 Delete photo', 'publish': '✅ Send for moderation', 'cancel': '❌ Cancel', 'choose_edit': 'What would you like to change?', 'edit_title': 'Enter a new title:', 'edit_description': 'Enter a new description:', 'edit_budget': 'Enter a new budget:', 'edit_city': 'Enter a new city:', 'edit_deadline': 'Enter a new deadline:', 'edit_experience': 'Enter experience information:', 'edit_portfolio': 'Enter portfolio link:', 'edit_contact': 'Enter Telegram username:', 'choose_category': 'Choose a category:', 'send_photo': 'Send the listing photo.', 'photo_added': '📷 Photo added.', 'photo_deleted': 'Photo deleted.', 'cancelled': '❌ Listing creation cancelled.', 'sent_moderation': '✅ Listing sent for moderation.\n\nIt will appear in the channel after approval.', 'published': '📢 <b>Your listing has been published in the channel!</b>', 'rejected': '❌ Your listing was rejected during moderation.', 'find': '🔎 Find a listing', 'mine': '📋 My listings', 'about': 'ℹ️ About', 'support': '🆘 Support', 'language': '🌐 Language', 'submit_ad': '➕ Post a listing', 'invite': '👥 Invite friends', 'search_prompt': '🔎 Type what you are looking for.\n\nFor example: <i>designer</i>, <i>electrician Chișinău</i>, <i>website</i>.', 'nothing_found': 'No matching listings found.', 'my_empty': 'You do not have any listings yet.', 'support_prompt': '🆘 Write your question in one message.', 'support_sent': '✅ Your message was sent to the administrator.', 'admin_new': '🆕 <b>New listing for moderation</b>', 'approve': '✅ Approve', 'reject': '❌ Reject', 'approved_admin': '✅ Published', 'rejected_admin': '❌ Rejected', 'contact_seller': '💬 Contact seller', 'submit_again': '➕ Post a listing', 'contact_request': '📩 <b>New request about your listing!</b>\n\nA user wants to contact you.', 'no_contact': 'You do not have a Telegram username. Please enter one for contact.', 'invalid_photo': 'Please send a photo.', 'invalid_text': 'Please send text.', 'language_changed': 'Language changed.', 'about_text': 'ℹ️ <b>Vitrina Freelance MD</b>\n\nA platform for finding specialists and offering services in Moldova.', 'search_done': '🔎 Search complete.', 'status_pending': '⏳ Under moderation', 'status_approved': '✅ Published', 'status_rejected': '❌ Rejected', 'done': '📋 Done.', 'stats_title': '📊 <b>My statistics</b>', 'friends': '👥 Friends invited', 'my_ads': '📝 My listings', 'published_count': '✅ Published', 'bump_credits': '⬆️ Bump credits', 'vip_credits': '⭐ VIP credits', 'invite_title': '👥 <b>Invite friends</b>', 'personal_link': 'Your personal link', 'invited': 'Invited', 'rewards': '🎁 Rewards: 3 friends = 1 bump, 5 = 2 more bumps, 10 = 1 VIP.', 'share_invite': 'Send the link to people looking for work, clients or specialists.', 'ref_unavailable': 'The invitation link is temporarily unavailable.', 'bump_button': '⬆️ Bump', 'vip_button': '⭐ VIP', 'no_bump': 'You have no bump credits.', 'no_vip': 'You have no VIP credits.', 'bumped': '⬆️ Your listing was bumped in the channel.', 'vip_used': '⭐ Your VIP post was published in the channel.', 'not_yours': 'This listing is not available to you.', 'only_published': 'This action is available only for published listings.', 'action_error': 'Could not complete the action. Please try again.', 'phone_invalid': 'Enter a valid phone number.', 'missing_data': '❗ Some listing data is missing.', 'language_choose': '🌐 Choose a language:', 'share_ref': '📤 Share on Telegram', 'field_title': 'Title', 'field_description': 'Description', 'field_category': 'Category', 'field_budget': 'Budget', 'field_city': 'City', 'field_deadline': 'Deadline', 'field_experience': 'Experience', 'field_portfolio': 'Portfolio', 'field_phone': 'Phone', 'field_contact': 'Contact', 'back': '↩️ Back', 'kind_need': '🔎 Specialist needed', 'kind_offer': '👨\u200d💻 Service offered', 'label_category': 'Category', 'label_budget': 'Budget', 'label_city': 'City', 'label_deadline': 'Deadline', 'label_experience': 'Experience', 'label_phone': 'Phone', 'label_description': 'Description', 'label_portfolio': 'Portfolio', 'label_contact': 'Contact', 'untitled': 'Untitled'}}
 
 
 # ============================================================
@@ -515,24 +260,16 @@ CITY_ALIASES = {
 # ============================================================
 
 def get_db():
-    # Create the parent directory automatically when DB_PATH points to a Render Disk
-    # (for example /var/data/vitrina.db).
-    db_parent = Path(DB_PATH).expanduser().resolve().parent
-    db_parent.mkdir(parents=True, exist_ok=True)
-
     conn = sqlite3.connect(DB_PATH, timeout=30)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA busy_timeout = 30000")
-    conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA journal_mode = WAL")
     return conn
 
 
 def init_db():
     conn = get_db()
     cur = conn.cursor()
-    # WAL improves SQLite reliability when the bot and news worker use the DB concurrently.
-    cur.execute("PRAGMA journal_mode = WAL")
-    cur.execute("PRAGMA synchronous = NORMAL")
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
@@ -578,17 +315,6 @@ def init_db():
     """)
 
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS promotion_redemptions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            listing_id INTEGER NOT NULL,
-            promotion_type TEXT NOT NULL,
-            channel_message_id INTEGER,
-            created_at TEXT NOT NULL
-        )
-    """)
-
-    cur.execute("""
         CREATE TABLE IF NOT EXISTS listings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -613,13 +339,6 @@ def init_db():
     listing_columns = {row[1] for row in cur.execute("PRAGMA table_info(listings)").fetchall()}
     if "phone" not in listing_columns:
         cur.execute("ALTER TABLE listings ADD COLUMN phone TEXT")
-
-    # Indexes keep admin/search/profile queries fast as the project grows.
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_listings_user ON listings(user_id, id DESC)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_listings_status ON listings(status, id DESC)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_listings_category ON listings(category, status)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_user_id)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_promotions_user ON promotion_redemptions(user_id, created_at)")
 
     conn.commit()
     conn.close()
@@ -657,8 +376,11 @@ def save_user(user):
         language = "ru"
 
         if user.language_code:
-            if user.language_code.lower().startswith("ro"):
+            code = user.language_code.lower()
+            if code.startswith("ro"):
                 language = "ro"
+            elif code.startswith("en"):
+                language = "en"
 
         conn.execute(
             """
@@ -786,12 +508,14 @@ def ad_type_keyboard(user_id):
     return markup
 
 
-def category_keyboard():
+def category_keyboard(user_id=None):
     markup = types.InlineKeyboardMarkup()
 
     row = []
 
     for key, label in CATEGORIES:
+        if user_id is not None:
+            label = category_label_user(user_id, key)
         row.append(
             types.InlineKeyboardButton(
                 label,
@@ -854,18 +578,7 @@ def preview_keyboard(user_id, has_photo=False):
 def edit_keyboard(user_id):
     markup = types.InlineKeyboardMarkup()
 
-    fields = [
-        ("title", "Заголовок"),
-        ("description", "Описание"),
-        ("category", "Категория"),
-        ("budget", "Бюджет"),
-        ("city", "Город"),
-        ("deadline", "Срок"),
-        ("experience", "Опыт"),
-        ("portfolio", "Портфолио"),
-        ("phone", "Телефон"),
-        ("contact", "Контакт"),
-    ]
+    fields = [(key, tr(user_id, "field_" + key)) for key in ("title","description","category","budget","city","deadline","experience","portfolio","phone","contact")]
 
     for key, label in fields:
         markup.add(
@@ -877,7 +590,7 @@ def edit_keyboard(user_id):
 
     markup.add(
         types.InlineKeyboardButton(
-            "↩️ Назад",
+            tr(user_id, "back"),
             callback_data="back_preview"
         )
     )
@@ -984,6 +697,15 @@ def category_label(category):
             return label
 
     return category
+
+CATEGORY_NAMES = {
+    "ru": {"design":"🎨 Дизайн","programming":"💻 IT / Программирование","marketing":"📣 Маркетинг","photo_video":"📷 Фото / Видео","text":"✍️ Тексты","translation":"🌍 Переводы","construction":"🔨 Ремонт / Строительство","transport":"🚚 Транспорт","beauty":"💇 Красота","other":"📦 Другое"},
+    "ro": {"design":"🎨 Design","programming":"💻 IT / Programare","marketing":"📣 Marketing","photo_video":"📷 Foto / Video","text":"✍️ Texte","translation":"🌍 Traduceri","construction":"🔨 Reparații / Construcții","transport":"🚚 Transport","beauty":"💇 Frumusețe","other":"📦 Altele"},
+    "en": {"design":"🎨 Design","programming":"💻 IT / Programming","marketing":"📣 Marketing","photo_video":"📷 Photo / Video","text":"✍️ Writing","translation":"🌍 Translation","construction":"🔨 Repairs / Construction","transport":"🚚 Transport","beauty":"💇 Beauty","other":"📦 Other"},
+}
+
+def category_label_user(user_id, category):
+    return CATEGORY_NAMES.get(get_language(user_id), CATEGORY_NAMES["ru"]).get(category, category_label(category))
 
 
 def extract_city(text):
@@ -1194,68 +916,26 @@ def parse_quick_ad(text, user, kind):
 # ============================================================
 
 def preview_text(user_id, data):
-    kind_text = (
-        "🔎 Нужен специалист"
-        if data.get("kind") == "order"
-        else "👨‍💻 Предлагаю услугу"
-    )
-
-    category = data.get("category") or "other"
-
-    lines = [
-        tr(user_id, "preview"),
-        f"📌 <b>{html.escape(data.get('title') or 'Без названия')}</b>",
-        "",
-        kind_text,
-        f"📂 <b>Категория:</b> {html.escape(category_label(category))}",
-    ]
-
-    if data.get("budget"):
-        lines.append(
-            f"💰 <b>Бюджет:</b> {html.escape(data['budget'])}"
-        )
-
-    if data.get("city"):
-        lines.append(
-            f"📍 <b>Город:</b> {html.escape(data['city'])}"
-        )
-
-    if data.get("deadline"):
-        lines.append(
-            f"⏱ <b>Срок:</b> {html.escape(data['deadline'])}"
-        )
-
-    if data.get("experience"):
-        lines.append(
-            f"⭐ <b>Опыт:</b> {html.escape(data['experience'])}"
-        )
-
-    if data.get("phone"):
-        lines.append(
-            f"📞 <b>Телефон:</b> {html.escape(data['phone'])}"
-        )
-
-    lines.extend([
-        "",
-        "📝 <b>Описание:</b>",
-        html.escape(data.get("description") or ""),
-    ])
-
-    if data.get("portfolio"):
-        lines.extend([
-            "",
-            f"🔗 <b>Портфолио:</b> "
-            f"{html.escape(data['portfolio'])}"
-        ])
-
-    if data.get("contact"):
-        lines.extend([
-            "",
-            f"👤 <b>Контакт:</b> "
-            f"{html.escape(data['contact'])}"
-        ])
-
+    kind_text = tr(user_id, "kind_need") if data.get("kind") == "order" else tr(user_id, "kind_offer")
+    category=data.get("category") or "other"
+    lines=[tr(user_id,"preview"), f"📌 <b>{html.escape(data.get('title') or tr(user_id,'untitled'))}</b>", "", kind_text, f"📂 <b>{tr(user_id,'label_category')}:</b> {html.escape(category_label_user(user_id,category))}"]
+    for field,emoji,key in [("budget","💰","label_budget"),("city","📍","label_city"),("deadline","⏱","label_deadline"),("experience","⭐","label_experience"),("phone","📞","label_phone")]:
+        if data.get(field): lines.append(f"{emoji} <b>{tr(user_id,key)}:</b> {html.escape(data[field])}")
+    lines.extend(["", f"📝 <b>{tr(user_id,'label_description')}:</b>", html.escape(data.get("description") or "")])
+    if data.get("portfolio"): lines.extend(["", f"🔗 <b>{tr(user_id,'label_portfolio')}:</b> {html.escape(data['portfolio'])}"])
+    if data.get("contact"): lines.extend(["", f"👤 <b>{tr(user_id,'label_contact')}:</b> {html.escape(data['contact'])}"])
     return "\n".join(lines)
+
+def build_user_listing_text(user_id, row, limit=3500):
+    # User-entered content stays in its original language; only interface labels are localized.
+    kind_text=tr(user_id,"kind_need") if row["kind"]=="order" else tr(user_id,"kind_offer")
+    lines=[f"📌 <b>{html.escape(row['title'] or tr(user_id,'untitled'))}</b>","",kind_text,f"📂 <b>{tr(user_id,'label_category')}:</b> {html.escape(category_label_user(user_id,row['category'] or 'other'))}"]
+    for field,emoji,key in [("budget","💰","label_budget"),("city","📍","label_city"),("deadline","⏱","label_deadline"),("experience","⭐","label_experience"),("phone","📞","label_phone")]:
+        if field in row.keys() and row[field]: lines.append(f"{emoji} <b>{tr(user_id,key)}:</b> {html.escape(row[field])}")
+    lines.extend(["",f"📝 <b>{tr(user_id,'label_description')}:</b>",html.escape(row['description'] or '')])
+    if row["portfolio"]: lines.extend(["",f"🔗 <b>{tr(user_id,'label_portfolio')}:</b> {html.escape(row['portfolio'])}"])
+    text="\n".join(lines)
+    return text if len(text)<=limit else text[:max(0,limit-1)].rstrip()+"…"
 
 
 CATEGORY_HASHTAGS = {
@@ -1692,7 +1372,7 @@ def submit_form(chat_id, user_id):
     if not all(required):
         bot.send_message(
             chat_id,
-            "❗ Не хватает данных для объявления."
+            tr(user_id, "missing_data")
         )
         return
 
@@ -1907,16 +1587,13 @@ def register_referral(invited_user_id, referrer_user_id):
         if not referrer:
             return False
 
-        existing = conn.execute(
-            "SELECT 1 FROM referrals WHERE invited_user_id = ?",
-            (invited_user_id,)
-        ).fetchone()
-        if existing:
-            return False
-        conn.execute(
-            "INSERT INTO referrals (invited_user_id, referrer_user_id, created_at) VALUES (?, ?, ?)",
+        inserted = conn.execute(
+            "INSERT OR IGNORE INTO referrals (invited_user_id, referrer_user_id, created_at) VALUES (?, ?, ?)",
             (invited_user_id, referrer_user_id, current_time())
         )
+        if inserted.rowcount != 1:
+            conn.rollback()
+            return False
         conn.execute(
             "UPDATE users SET referred_by = ? WHERE user_id = ? AND referred_by IS NULL",
             (referrer_user_id, invited_user_id)
@@ -1965,153 +1642,14 @@ def referral_count(user_id):
 
 def send_referral_link(chat_id, user_id):
     if not BOT_USERNAME:
-        bot.send_message(chat_id, "Ссылка приглашения временно недоступна.")
-        return
-    link = f"https://t.me/{BOT_USERNAME}?start=ref_{user_id}"
-    count = referral_count(user_id)
-    conn = get_db()
-    wallet = conn.execute(
-        "SELECT bump_credits, vip_credits FROM growth_wallet WHERE user_id = ?",
-        (user_id,)
-    ).fetchone()
-    conn.close()
-    bumps = int(wallet["bump_credits"]) if wallet else 0
-    vips = int(wallet["vip_credits"]) if wallet else 0
-    bot.send_message(
-        chat_id,
-        "👥 <b>Пригласить друзей</b>\n\n"
-        f"Ваша персональная ссылка:\n{html.escape(link)}\n\n"
-        f"Приглашено: <b>{count}</b>\n"
-        f"⬆️ Поднятий: <b>{bumps}</b>\n"
-        f"⭐ VIP-кредитов: <b>{vips}</b>\n\n"
-        "🎁 Награды: 3 друга = 1 поднятие, 5 = ещё 2 поднятия, 10 = 1 VIP.\n\n"
-        "Отправьте ссылку знакомым, которым нужны работа, клиенты или специалисты."
-    )
-
-
-# ============================================================
-# GROWTH: FREE PROMOTIONS / FUTURE MONETIZATION FOUNDATION
-# ============================================================
-
-def get_wallet(user_id):
-    conn = get_db()
-    row = conn.execute(
-        "SELECT bump_credits, vip_credits FROM growth_wallet WHERE user_id = ?",
-        (user_id,)
-    ).fetchone()
-    conn.close()
-    return {
-        "bump": int(row["bump_credits"]) if row else 0,
-        "vip": int(row["vip_credits"]) if row else 0,
-    }
-
-
-def promotion_keyboard(listing_id, wallet):
-    markup = types.InlineKeyboardMarkup()
-    markup.row(
-        types.InlineKeyboardButton(
-            f"⬆️ Поднять ({wallet['bump']})",
-            callback_data=f"promo:bump:{listing_id}"
-        ),
-        types.InlineKeyboardButton(
-            f"⭐ VIP ({wallet['vip']})",
-            callback_data=f"promo:vip:{listing_id}"
-        )
-    )
-    return markup
-
-
-def publish_promoted_listing(row, promotion_type):
-    """Repost an approved listing without incrementing the news counter."""
-    target = get_channel_target()
-    if not target:
-        raise RuntimeError("Канал не настроен.")
-
-    base = build_public_text(row, limit=900 if row["photo_id"] else 3900)
-    if promotion_type == "vip":
-        prefix = "⭐ <b>VIP-ОБЪЯВЛЕНИЕ</b>\n\n"
-    else:
-        prefix = "⬆️ <b>ПОДНЯТО</b>\n\n"
-    text = prefix + base
-    keyboard = publish_keyboard(row)
-
-    if row["photo_id"]:
-        message = bot.send_photo(target, row["photo_id"], caption=text[:1024], reply_markup=keyboard)
-    else:
-        message = bot.send_message(target, text[:4096], reply_markup=keyboard, disable_web_page_preview=True)
-
-    try:
-        bot.edit_message_reply_markup(
-            chat_id=target,
-            message_id=message.message_id,
-            reply_markup=publish_keyboard(row, message.message_id)
-        )
-    except Exception as exc:
-        logger.warning("Could not add share button to promoted listing %s: %s", row["id"], exc)
-    return message.message_id
-
-
-def redeem_promotion(user_id, listing_id, promotion_type):
-    if promotion_type not in {"bump", "vip"}:
-        return False, "Неизвестный тип продвижения."
-
-    column = "bump_credits" if promotion_type == "bump" else "vip_credits"
-    conn = get_db()
-    try:
-        row = conn.execute(
-            """
-            SELECT listings.*, users.username, users.first_name
-            FROM listings
-            LEFT JOIN users ON users.user_id = listings.user_id
-            WHERE listings.id = ? AND listings.user_id = ? AND listings.status = 'approved'
-            """,
-            (listing_id, user_id)
-        ).fetchone()
-        if not row:
-            return False, "Объявление не найдено или ещё не опубликовано."
-
-        # Atomic reservation: only one concurrent click can spend the last credit.
-        cursor = conn.execute(
-            f"UPDATE growth_wallet SET {column} = {column} - 1, updated_at = ? "
-            f"WHERE user_id = ? AND {column} > 0",
-            (current_time(), user_id)
-        )
-        if cursor.rowcount != 1:
-            conn.rollback()
-            return False, "Недостаточно кредитов. Приглашайте друзей, чтобы получать продвижение."
-        conn.commit()
-    finally:
-        conn.close()
-
-    try:
-        message_id = publish_promoted_listing(row, promotion_type)
-    except Exception:
-        logger.exception("Promotion publication failed for user=%s listing=%s", user_id, listing_id)
-        # Telegram failed: return the reserved credit.
-        refund = get_db()
-        try:
-            refund.execute(
-                f"UPDATE growth_wallet SET {column} = {column} + 1, updated_at = ? WHERE user_id = ?",
-                (current_time(), user_id)
-            )
-            refund.commit()
-        finally:
-            refund.close()
-        return False, "Не удалось выполнить продвижение. Кредит возвращён."
-
-    conn = get_db()
-    try:
-        conn.execute(
-            "INSERT INTO promotion_redemptions "
-            "(user_id, listing_id, promotion_type, channel_message_id, created_at) "
-            "VALUES (?, ?, ?, ?, ?)",
-            (user_id, listing_id, promotion_type, message_id, current_time())
-        )
-        conn.commit()
-    finally:
-        conn.close()
-
-    return True, "⭐ VIP-размещение опубликовано." if promotion_type == "vip" else "⬆️ Объявление поднято."
+        bot.send_message(chat_id, tr(user_id, "ref_unavailable")); return
+    link=f"https://t.me/{BOT_USERNAME}?start=ref_{user_id}"
+    count=referral_count(user_id)
+    conn=get_db(); wallet=conn.execute("SELECT bump_credits, vip_credits FROM growth_wallet WHERE user_id=?",(user_id,)).fetchone(); conn.close()
+    bumps=int(wallet["bump_credits"]) if wallet else 0; vips=int(wallet["vip_credits"]) if wallet else 0
+    share_url="https://t.me/share/url?url="+quote(link,safe="")+"&text="+quote("Vitrina Freelance MD",safe="")
+    markup=types.InlineKeyboardMarkup(); markup.add(types.InlineKeyboardButton(tr(user_id,"share_ref"),url=share_url))
+    bot.send_message(chat_id, f"{tr(user_id,'invite_title')}\n\n{tr(user_id,'personal_link')}:\n{html.escape(link)}\n\n{tr(user_id,'invited')}: <b>{count}</b>\n{tr(user_id,'bump_credits')}: <b>{bumps}</b>\n{tr(user_id,'vip_credits')}: <b>{vips}</b>\n\n{tr(user_id,'rewards')}\n\n{tr(user_id,'share_invite')}", reply_markup=markup)
 
 
 # ============================================================
@@ -2347,7 +1885,7 @@ def edit_field_callback(call):
             tr(user_id, "choose_category"),
             call.message.chat.id,
             call.message.message_id,
-            reply_markup=category_keyboard()
+            reply_markup=category_keyboard(user_id)
         )
 
         return
@@ -2752,7 +2290,7 @@ def form_input(message):
     # CANCEL
     # --------------------------------------------------------
 
-    if text == tr(user_id, "cancel"):
+    if any(text == TEXT[lang].get("cancel") for lang in TEXT):
         states.pop(user_id, None)
 
         bot.send_message(
@@ -2761,6 +2299,11 @@ def form_input(message):
             reply_markup=main_menu(user_id)
         )
 
+        return
+
+    # Main-menu buttons always win over an unfinished in-memory form, including stale keyboards.
+    if message.content_type == "text" and _menu_action(text):
+        handle_menu_text(message)
         return
 
     state = states.get(user_id)
@@ -2958,7 +2501,7 @@ def form_input(message):
             if field == "phone":
                 normalized_phone = extract_phone(text)
                 if not normalized_phone:
-                    bot.send_message(chat_id, "Введите корректный номер телефона.")
+                    bot.send_message(chat_id, tr(user_id, "phone_invalid"))
                     return
                 data[field] = normalized_phone
             else:
@@ -2978,88 +2521,42 @@ def form_input(message):
 # MENU HANDLER
 # ============================================================
 
+def _menu_action(text):
+    text = (text or "").strip()
+    for key in ("submit_ad", "find", "mine", "about", "support", "invite", "language"):
+        if any(text == TEXT[lang].get(key) for lang in TEXT):
+            return key
+    return None
+
+
 def handle_menu_text(message):
     user_id = message.from_user.id
     chat_id = message.chat.id
-    text = message.text.strip()
+    action = _menu_action(message.text)
 
-    if text == tr(user_id, "submit_ad"):
-        start_quick_form(
-            chat_id,
-            user_id
-        )
-        return
+    # A stale keyboard from another language must still work.
+    if action:
+        states.pop(user_id, None)
 
-    if text == tr(user_id, "find"):
-        states[user_id] = {
-            "mode": "search",
-            "step": "search",
-            "data": {}
-        }
-
-        bot.send_message(
-            chat_id,
-            tr(user_id, "search_prompt"),
-            reply_markup=cancel_keyboard(user_id)
-        )
-
-        return
-
-    if text == tr(user_id, "mine"):
-        show_my_listings(
-            chat_id,
-            user_id
-        )
-        return
-
-    if text == tr(user_id, "about"):
-        bot.send_message(
-            chat_id,
-            tr(user_id, "about_text"),
-            reply_markup=main_menu(user_id)
-        )
-        return
-
-    if text == tr(user_id, "support"):
-        states[user_id] = {
-            "mode": "support",
-            "step": "support",
-            "data": {}
-        }
-
-        bot.send_message(
-            chat_id,
-            tr(user_id, "support_prompt"),
-            reply_markup=cancel_keyboard(user_id)
-        )
-
-        return
-
-    if text == tr(user_id, "invite"):
-        send_referral_link(chat_id, user_id)
-        return
-
-    if text == tr(user_id, "language"):
+    if action == "submit_ad":
+        start_quick_form(chat_id, user_id); return
+    if action == "find":
+        states[user_id] = {"mode": "search", "step": "search", "data": {}}
+        bot.send_message(chat_id, tr(user_id, "search_prompt"), reply_markup=cancel_keyboard(user_id)); return
+    if action == "mine":
+        show_my_listings(chat_id, user_id); return
+    if action == "about":
+        bot.send_message(chat_id, tr(user_id, "about_text"), reply_markup=main_menu(user_id)); return
+    if action == "support":
+        states[user_id] = {"mode": "support", "step": "support", "data": {}}
+        bot.send_message(chat_id, tr(user_id, "support_prompt"), reply_markup=cancel_keyboard(user_id)); return
+    if action == "invite":
+        send_referral_link(chat_id, user_id); return
+    if action == "language":
         markup = types.InlineKeyboardMarkup()
-
-        markup.row(
-            types.InlineKeyboardButton(
-                "🇷🇺 Русский",
-                callback_data="lang:ru"
-            ),
-            types.InlineKeyboardButton(
-                "🇷🇴 Română",
-                callback_data="lang:ro"
-            )
-        )
-
-        bot.send_message(
-            chat_id,
-            "🌐 Выберите язык / Alege limba:",
-            reply_markup=markup
-        )
-
-        return
+        markup.row(types.InlineKeyboardButton("🇷🇺 Русский", callback_data="lang:ru"), types.InlineKeyboardButton("🇷🇴 Română", callback_data="lang:ro"))
+        markup.row(types.InlineKeyboardButton("🇬🇧 English", callback_data="lang:en"))
+        bot.send_message(chat_id, tr(user_id, "language_choose"), reply_markup=markup); return
 
 
 # ============================================================
@@ -3076,10 +2573,8 @@ def language_callback(call):
         bot.answer_callback_query(call.id)
         return
 
-    set_language(
-        call.from_user.id,
-        language
-    )
+    set_language(call.from_user.id, language)
+    states.pop(call.from_user.id, None)
 
     bot.answer_callback_query(
         call.id,
@@ -3155,10 +2650,7 @@ def show_search_results(chat_id, user_id, query):
         return
 
     for row in results[:10]:
-        text = build_public_text(
-            row,
-            limit=3500
-        )
+        text = build_user_listing_text(user_id, row, limit=3500)
 
         keyboard = types.InlineKeyboardMarkup()
 
@@ -3167,7 +2659,7 @@ def show_search_results(chat_id, user_id, query):
 
             keyboard.add(
                 types.InlineKeyboardButton(
-                    "💬 Связаться с продавцом",
+                    tr(user_id, "contact_seller"),
                     url=f"https://t.me/{username}"
                 )
             )
@@ -3175,7 +2667,7 @@ def show_search_results(chat_id, user_id, query):
         elif BOT_USERNAME:
             keyboard.add(
                 types.InlineKeyboardButton(
-                    "💬 Связаться с продавцом",
+                    tr(user_id, "contact_seller"),
                     url=(
                         f"https://t.me/{BOT_USERNAME}"
                         f"?start=contact_{row['id']}"
@@ -3206,7 +2698,7 @@ def show_search_results(chat_id, user_id, query):
 
     bot.send_message(
         chat_id,
-        "🔎 Поиск завершён.",
+        tr(user_id, "search_done"),
         reply_markup=main_menu(user_id)
     )
 
@@ -3217,84 +2709,76 @@ def show_search_results(chat_id, user_id, query):
 
 def show_my_listings(chat_id, user_id):
     conn = get_db()
-
-    rows = conn.execute(
-        """
-        SELECT *
-        FROM listings
-        WHERE user_id = ?
-        ORDER BY id DESC
-        LIMIT 20
-        """,
-        (user_id,)
-    ).fetchall()
-
+    rows = conn.execute("SELECT * FROM listings WHERE user_id = ? ORDER BY id DESC LIMIT 20", (user_id,)).fetchall()
+    wallet = conn.execute("SELECT bump_credits, vip_credits FROM growth_wallet WHERE user_id = ?", (user_id,)).fetchone()
     conn.close()
-
     if not rows:
-        bot.send_message(
-            chat_id,
-            tr(user_id, "my_empty"),
-            reply_markup=main_menu(user_id)
-        )
-        return
-
+        bot.send_message(chat_id, tr(user_id, "my_empty"), reply_markup=main_menu(user_id)); return
+    bumps = int(wallet["bump_credits"]) if wallet else 0
+    vips = int(wallet["vip_credits"]) if wallet else 0
+    status_keys = {"pending":"status_pending", "approved":"status_approved", "rejected":"status_rejected"}
     for row in rows:
-        status_map = {
-            "pending": "⏳ На модерации",
-            "approved": "✅ Опубликовано",
-            "rejected": "❌ Отклонено",
-        }
-
-        status = status_map.get(
-            row["status"],
-            row["status"]
-        )
-
-        text = (
-            f"📌 <b>{html.escape(row['title'] or '')}</b>\n"
-            f"{status}\n"
-            f"📂 {html.escape(category_label(row['category'] or 'other'))}"
-        )
-
-        reply_markup = None
+        status = tr(user_id, status_keys.get(row["status"], "status_pending")) if row["status"] in status_keys else html.escape(row["status"] or "")
+        text = f"📌 <b>{html.escape(row['title'] or '')}</b>\n{status}\n📂 {html.escape(category_label_user(user_id, row['category'] or 'other'))}"
+        markup = None
         if row["status"] == "approved":
-            reply_markup = promotion_keyboard(row["id"], get_wallet(user_id))
-
-        bot.send_message(
-            chat_id,
-            text,
-            reply_markup=reply_markup
-        )
-
-    bot.send_message(
-        chat_id,
-        "📋 Готово.",
-        reply_markup=main_menu(user_id)
-    )
+            markup = types.InlineKeyboardMarkup()
+            markup.row(types.InlineKeyboardButton(f"{tr(user_id, 'bump_button')} ({bumps})", callback_data=f"use_bump:{row['id']}"), types.InlineKeyboardButton(f"{tr(user_id, 'vip_button')} ({vips})", callback_data=f"use_vip:{row['id']}"))
+        bot.send_message(chat_id, text, reply_markup=markup)
+    bot.send_message(chat_id, tr(user_id, "done"), reply_markup=main_menu(user_id))
 
 
-# ============================================================
-# PROMOTION CALLBACK
-# ============================================================
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith("promo:"))
-def promotion_callback(call):
-    parts = call.data.split(":")
-    if len(parts) != 3:
-        bot.answer_callback_query(call.id)
-        return
-    promotion_type = parts[1]
+def _growth_repost(user_id, listing_id, credit_type):
+    target = get_channel_target()
+    if not target: return False, "action_error"
+    conn = get_db()
     try:
-        listing_id = int(parts[2])
-    except ValueError:
-        bot.answer_callback_query(call.id)
-        return
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute("SELECT listings.*, users.username, users.first_name FROM listings LEFT JOIN users ON users.user_id=listings.user_id WHERE listings.id=?", (listing_id,)).fetchone()
+        if not row or row["user_id"] != user_id:
+            conn.rollback(); return False, "not_yours"
+        if row["status"] != "approved":
+            conn.rollback(); return False, "only_published"
+        conn.execute("INSERT OR IGNORE INTO growth_wallet(user_id,bump_credits,vip_credits,updated_at) VALUES (?,0,0,?)", (user_id,current_time()))
+        column = "bump_credits" if credit_type == "bump" else "vip_credits"
+        balance = conn.execute(f"SELECT {column} AS c FROM growth_wallet WHERE user_id=?", (user_id,)).fetchone()["c"]
+        if int(balance) < 1:
+            conn.rollback(); return False, "no_bump" if credit_type == "bump" else "no_vip"
+        # Reserve one credit. Refund if Telegram publication fails.
+        conn.execute(f"UPDATE growth_wallet SET {column}={column}-1, updated_at=? WHERE user_id=? AND {column}>0", (current_time(),user_id))
+        conn.commit()
+    finally:
+        conn.close()
+    try:
+        prefix = "⭐ <b>VIP</b>\n\n" if credit_type == "vip" else "⬆️ <b>Поднято / Promovat / Bumped</b>\n\n"
+        limit = 1024-len(prefix) if row["photo_id"] else 4096-len(prefix)
+        body = build_public_text(row, limit=max(500,limit))
+        keyboard = publish_keyboard(row)
+        if row["photo_id"]:
+            msg=bot.send_photo(target,row["photo_id"],caption=prefix+body,reply_markup=keyboard)
+        else:
+            msg=bot.send_message(target,prefix+body,reply_markup=keyboard,disable_web_page_preview=True)
+        try:
+            bot.edit_message_reply_markup(target,msg.message_id,reply_markup=publish_keyboard(row,msg.message_id))
+        except Exception: pass
+        return True, "bumped" if credit_type=="bump" else "vip_used"
+    except Exception:
+        logger.exception("Growth repost failed listing=%s type=%s", listing_id, credit_type)
+        conn=get_db(); conn.execute(f"UPDATE growth_wallet SET {column}={column}+1, updated_at=? WHERE user_id=?",(current_time(),user_id)); conn.commit(); conn.close()
+        return False, "action_error"
 
-    # Fast acknowledgement prevents Telegram's loading spinner from hanging.
-    bot.answer_callback_query(call.id, "Обрабатываю…")
-    ok, message = redeem_promotion(call.from_user.id, listing_id, promotion_type)
-    bot.send_message(call.message.chat.id, message, reply_markup=main_menu(call.from_user.id))
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("use_bump:") or call.data.startswith("use_vip:"))
+def growth_use_callback(call):
+    user_id=call.from_user.id
+    try: listing_id=int(call.data.split(":",1)[1])
+    except Exception:
+        bot.answer_callback_query(call.id,tr(user_id,"action_error"),show_alert=True); return
+    kind="bump" if call.data.startswith("use_bump:") else "vip"
+    ok,key=_growth_repost(user_id,listing_id,kind)
+    bot.answer_callback_query(call.id,tr(user_id,key),show_alert=not ok)
+    if ok:
+        show_my_listings(call.message.chat.id,user_id)
 
 
 # ============================================================
@@ -3309,23 +2793,10 @@ def invite_handler(message):
 
 @bot.message_handler(commands=["mystats"])
 def my_stats_handler(message):
-    save_user(message.from_user)
-    user_id = message.from_user.id
-    conn = get_db()
-    ads = conn.execute("SELECT COUNT(*) AS c FROM listings WHERE user_id = ?", (user_id,)).fetchone()["c"]
-    published = conn.execute("SELECT COUNT(*) AS c FROM listings WHERE user_id = ? AND status='approved'", (user_id,)).fetchone()["c"]
-    wallet = conn.execute("SELECT bump_credits, vip_credits FROM growth_wallet WHERE user_id = ?", (user_id,)).fetchone()
-    conn.close()
-    bumps = int(wallet["bump_credits"]) if wallet else 0
-    vips = int(wallet["vip_credits"]) if wallet else 0
-    bot.send_message(message.chat.id,
-        "📊 <b>Моя статистика</b>\n\n"
-        f"👥 Приглашено друзей: <b>{referral_count(user_id)}</b>\n"
-        f"📝 Моих объявлений: <b>{ads}</b>\n"
-        f"✅ Опубликовано: <b>{published}</b>\n"
-        f"⬆️ Поднятий: <b>{bumps}</b>\n"
-        f"⭐ VIP-кредитов: <b>{vips}</b>"
-    )
+    save_user(message.from_user); user_id=message.from_user.id
+    conn=get_db(); ads=conn.execute("SELECT COUNT(*) AS c FROM listings WHERE user_id=?",(user_id,)).fetchone()["c"]; published=conn.execute("SELECT COUNT(*) AS c FROM listings WHERE user_id=? AND status='approved'",(user_id,)).fetchone()["c"]; wallet=conn.execute("SELECT bump_credits,vip_credits FROM growth_wallet WHERE user_id=?",(user_id,)).fetchone(); conn.close()
+    bumps=int(wallet["bump_credits"]) if wallet else 0; vips=int(wallet["vip_credits"]) if wallet else 0
+    bot.send_message(message.chat.id, f"{tr(user_id,'stats_title')}\n\n{tr(user_id,'friends')}: <b>{referral_count(user_id)}</b>\n{tr(user_id,'my_ads')}: <b>{ads}</b>\n{tr(user_id,'published_count')}: <b>{published}</b>\n{tr(user_id,'bump_credits')}: <b>{bumps}</b>\n{tr(user_id,'vip_credits')}: <b>{vips}</b>")
 
 
 def send_admin_stats(chat_id):
@@ -3392,107 +2863,6 @@ def growth_admin_callback(call):
 
 
 # ============================================================
-# ADMIN OPERATIONS
-# ============================================================
-
-@bot.message_handler(commands=["reply"])
-def support_reply_handler(message):
-    if message.from_user.id != ADMIN_ID:
-        return
-    parts = (message.text or "").split(maxsplit=2)
-    if len(parts) != 3:
-        bot.send_message(message.chat.id, "Использование: <code>/reply USER_ID текст ответа</code>")
-        return
-    try:
-        user_id = int(parts[1])
-    except ValueError:
-        bot.send_message(message.chat.id, "Неверный User ID.")
-        return
-    try:
-        bot.send_message(
-            user_id,
-            "🆘 <b>Ответ поддержки Vitrina</b>\n\n" + html.escape(parts[2])
-        )
-        bot.send_message(message.chat.id, "✅ Ответ отправлен.")
-    except Exception:
-        logger.exception("Support reply failed for user=%s", user_id)
-        bot.send_message(message.chat.id, "Не удалось отправить ответ пользователю.")
-
-
-@bot.message_handler(commands=["health"])
-def health_handler(message):
-    if message.from_user.id != ADMIN_ID:
-        return
-    conn = get_db()
-    try:
-        conn.execute("SELECT 1").fetchone()
-        db_status = "OK"
-    except Exception:
-        db_status = "ERROR"
-    finally:
-        conn.close()
-    disk_hint = "persistent" if str(Path(DB_PATH)).startswith("/var/data/") else "local/ephemeral?"
-    bot.send_message(
-        message.chat.id,
-        "🩺 <b>Vitrina health</b>\n\n"
-        f"Bot: <b>OK</b>\nDB: <b>{db_status}</b>\n"
-        f"DB_PATH: <code>{html.escape(DB_PATH)}</code>\nStorage: <b>{disk_hint}</b>"
-    )
-
-
-@bot.message_handler(commands=["grant"])
-def grant_handler(message):
-    if message.from_user.id != ADMIN_ID:
-        return
-    parts = (message.text or "").split()
-    if len(parts) != 4:
-        bot.send_message(message.chat.id, "Использование: <code>/grant USER_ID bump|vip КОЛИЧЕСТВО</code>")
-        return
-    try:
-        user_id = int(parts[1])
-        reward_type = parts[2].lower()
-        amount = int(parts[3])
-    except ValueError:
-        bot.send_message(message.chat.id, "Неверные параметры.")
-        return
-    if reward_type not in {"bump", "vip"} or not (1 <= amount <= 100):
-        bot.send_message(message.chat.id, "Тип: bump или vip. Количество: 1–100.")
-        return
-    column = "bump_credits" if reward_type == "bump" else "vip_credits"
-    conn = get_db()
-    conn.execute(
-        "INSERT OR IGNORE INTO growth_wallet (user_id, bump_credits, vip_credits, updated_at) VALUES (?, 0, 0, ?)",
-        (user_id, current_time())
-    )
-    conn.execute(
-        f"UPDATE growth_wallet SET {column} = {column} + ?, updated_at = ? WHERE user_id = ?",
-        (amount, current_time(), user_id)
-    )
-    conn.commit()
-    conn.close()
-    bot.send_message(message.chat.id, f"✅ Начислено: {reward_type} × {amount} пользователю <code>{user_id}</code>.")
-
-
-@bot.message_handler(commands=["backup"])
-def backup_handler(message):
-    if message.from_user.id != ADMIN_ID:
-        return
-    try:
-        backup_path = Path("/tmp/vitrina_backup.sqlite3")
-        source = get_db()
-        destination = sqlite3.connect(str(backup_path))
-        with destination:
-            source.backup(destination)
-        destination.close()
-        source.close()
-        with backup_path.open("rb") as fh:
-            bot.send_document(message.chat.id, fh, caption="💾 Резервная копия базы Vitrina")
-    except Exception:
-        logger.exception("Database backup failed")
-        bot.send_message(message.chat.id, "Не удалось создать резервную копию базы.")
-
-
-# ============================================================
 # ERROR HANDLER
 # ============================================================
 
@@ -3515,13 +2885,6 @@ def id_handler(message):
 
 if __name__ == "__main__":
     init_db()
-
-    if not str(Path(DB_PATH)).startswith("/var/data/"):
-        logger.warning(
-            "DB_PATH=%s does not look like a Render persistent disk path. "
-            "For production set DB_PATH=/var/data/vitrina.db and mount a disk at /var/data.",
-            DB_PATH
-        )
 
     # Если BOT_USERNAME не указан в Render,
     # определяем его автоматически.
