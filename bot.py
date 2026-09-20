@@ -88,7 +88,392 @@ support_replies = {}
 # TEXT
 # ============================================================
 
-TEXT = {'ru': {'welcome': '👋 <b>Добро пожаловать в Vitrina Freelance MD!</b>\n\nЗдесь можно найти специалиста или предложить свои услуги.', 'choose_ad_type': 'Выберите тип объявления:', 'need_specialist': '🔎 Мне нужен специалист', 'offer_service': '👨\u200d💻 Предлагаю свои услуги', 'need_one_message': '📝 <b>Напишите объявление одним сообщением.</b>\n\nПросто расскажите:\n• что нужно сделать;\n• город;\n• бюджет;\n• сроки;\n• опыт или требования;\n• дополнительную информацию.\n\nЯ автоматически определю категорию и основные данные.', 'offer_one_message': '📝 <b>Напишите о своей услуге одним сообщением.</b>\n\nНапример:\n• какую услугу предлагаете;\n• город;\n• цена;\n• опыт;\n• портфолио;\n• дополнительные условия.\n\nЯ автоматически подготовлю объявление.', 'preview': '👀 <b>Предпросмотр объявления</b>\n\n', 'edit': '✏️ Изменить', 'add_photo': '📷 Добавить фото', 'delete_photo': '🗑 Удалить фото', 'publish': '✅ Отправить на модерацию', 'cancel': '❌ Отменить', 'choose_edit': 'Что хотите изменить?', 'edit_title': 'Введите новый заголовок:', 'edit_description': 'Введите новое описание:', 'edit_budget': 'Введите новый бюджет:', 'edit_city': 'Введите новый город:', 'edit_deadline': 'Введите новый срок:', 'edit_experience': 'Введите информацию об опыте:', 'edit_portfolio': 'Введите ссылку на портфолио:', 'edit_contact': 'Введите Telegram username для связи.\nНапример: @username', 'choose_category': 'Выберите категорию:', 'send_photo': 'Отправьте фотографию объявления.', 'photo_added': '📷 Фото добавлено.', 'photo_deleted': 'Фото удалено.', 'cancelled': '❌ Создание объявления отменено.', 'sent_moderation': '✅ Объявление отправлено на модерацию.\n\nПосле проверки оно появится в канале.', 'published': '📢 <b>Объявление опубликовано в канале!</b>', 'rejected': '❌ Ваше объявление не прошло модерацию.', 'find': '🔎 Найти объявление', 'mine': '📋 Мои объявления', 'about': 'ℹ️ О проекте', 'support': '🆘 Поддержка', 'language': '🌐 Язык', 'submit_ad': '➕ Подать объявление', 'invite': '👥 Пригласить друзей', 'search_prompt': '🔎 Напишите, что вы ищете.\n\nНапример:\n<i>дизайнер</i>\n<i>монтажник Кишинёв</i>\n<i>создание сайта</i>', 'nothing_found': 'Ничего подходящего не найдено.', 'my_empty': 'У вас пока нет объявлений.', 'support_prompt': '🆘 Напишите свой вопрос одним сообщением.', 'support_sent': '✅ Сообщение отправлено администратору.', 'admin_new': '🆕 <b>Новое объявление на модерации</b>', 'approve': '✅ Одобрить', 'reject': '❌ Отклонить', 'approved_admin': '✅ Опубликовано', 'rejected_admin': '❌ Отклонено', 'contact_seller': '💬 Связаться с продавцом', 'submit_again': '➕ Подать объявление', 'contact_request': '📩 <b>Новый запрос по вашему объявлению!</b>\n\nПользователь хочет связаться с вами.', 'no_contact': 'У вас не указан Telegram username.\nПожалуйста, укажите его для связи.', 'invalid_photo': 'Пожалуйста, отправьте фотографию.', 'invalid_text': 'Пожалуйста, отправьте текст.', 'language_changed': 'Язык изменён.', 'about_text': 'ℹ️ <b>Vitrina Freelance MD</b>\n\nПлощадка для поиска специалистов и размещения услуг в Молдове.', 'search_done': '🔎 Поиск завершён.', 'status_pending': '⏳ На модерации', 'status_approved': '✅ Опубликовано', 'status_rejected': '❌ Отклонено', 'done': '📋 Готово.', 'stats_title': '📊 <b>Моя статистика</b>', 'friends': '👥 Приглашено друзей', 'my_ads': '📝 Моих объявлений', 'published_count': '✅ Опубликовано', 'bump_credits': '⬆️ Кредитов поднятия', 'vip_credits': '⭐ VIP-кредитов', 'invite_title': '👥 <b>Пригласить друзей</b>', 'personal_link': 'Ваша персональная ссылка', 'invited': 'Приглашено', 'rewards': '🎁 Награды: 3 друга = 1 поднятие, 5 = ещё 2 поднятия, 10 = 1 VIP.', 'share_invite': 'Отправьте ссылку знакомым, которым нужны работа, клиенты или специалисты.', 'ref_unavailable': 'Ссылка приглашения временно недоступна.', 'bump_button': '⬆️ Поднять', 'vip_button': '⭐ VIP', 'no_bump': 'У вас нет кредитов поднятия.', 'no_vip': 'У вас нет VIP-кредитов.', 'bumped': '⬆️ Объявление поднято в канале.', 'vip_used': '⭐ VIP-публикация размещена в канале.', 'not_yours': 'Это объявление вам недоступно.', 'only_published': 'Действие доступно только для опубликованных объявлений.', 'action_error': 'Не удалось выполнить действие. Попробуйте позже.', 'phone_invalid': 'Введите корректный номер телефона.', 'missing_data': '❗ Не хватает данных для объявления.', 'language_choose': '🌐 Выберите язык:', 'share_ref': '📤 Поделиться в Telegram', 'field_title': 'Заголовок', 'field_description': 'Описание', 'field_category': 'Категория', 'field_budget': 'Бюджет', 'field_city': 'Город', 'field_deadline': 'Срок', 'field_experience': 'Опыт', 'field_portfolio': 'Портфолио', 'field_phone': 'Телефон', 'field_contact': 'Контакт', 'back': '↩️ Назад', 'kind_need': '🔎 Нужен специалист', 'kind_offer': '👨\u200d💻 Предлагаю услугу', 'label_category': 'Категория', 'label_budget': 'Бюджет', 'label_city': 'Город', 'label_deadline': 'Срок', 'label_experience': 'Опыт', 'label_phone': 'Телефон', 'label_description': 'Описание', 'label_portfolio': 'Портфолио', 'label_contact': 'Контакт', 'untitled': 'Без названия'}, 'ro': {'welcome': '👋 <b>Bun venit la Vitrina Freelance MD!</b>\n\nAici poți găsi un specialist sau îți poți oferi serviciile.', 'choose_ad_type': 'Alege tipul anunțului:', 'need_specialist': '🔎 Am nevoie de un specialist', 'offer_service': '👨\u200d💻 Ofer servicii', 'need_one_message': '📝 <b>Scrie anunțul într-un singur mesaj.</b>\n\nSpune ce trebuie făcut, orașul, bugetul și termenul.', 'offer_one_message': '📝 <b>Scrie despre serviciul tău într-un singur mesaj.</b>\n\nSpune ce serviciu oferi, orașul, prețul și experiența.', 'preview': '👀 <b>Previzualizarea anunțului</b>\n\n', 'edit': '✏️ Modifică', 'add_photo': '📷 Adaugă fotografie', 'delete_photo': '🗑 Șterge fotografia', 'publish': '✅ Trimite pentru moderare', 'cancel': '❌ Anulează', 'choose_edit': 'Ce dorești să modifici?', 'edit_title': 'Introdu noul titlu:', 'edit_description': 'Introdu noua descriere:', 'edit_budget': 'Introdu noul buget:', 'edit_city': 'Introdu noul oraș:', 'edit_deadline': 'Introdu noul termen:', 'edit_experience': 'Introdu experiența:', 'edit_portfolio': 'Introdu linkul portofoliului:', 'edit_contact': 'Introdu username-ul Telegram:', 'choose_category': 'Alege categoria:', 'send_photo': 'Trimite fotografia anunțului.', 'photo_added': '📷 Fotografia a fost adăugată.', 'photo_deleted': 'Fotografia a fost ștearsă.', 'cancelled': '❌ Crearea anunțului a fost anulată.', 'sent_moderation': '✅ Anunțul a fost trimis pentru moderare.', 'published': '📢 <b>Anunțul a fost publicat pe canal!</b>', 'rejected': '❌ Anunțul nu a trecut moderarea.', 'find': '🔎 Găsește un anunț', 'mine': '📋 Anunțurile mele', 'about': 'ℹ️ Despre proiect', 'support': '🆘 Suport', 'language': '🌐 Limbă', 'submit_ad': '➕ Publică un anunț', 'invite': '👥 Invită prieteni', 'search_prompt': '🔎 Scrie ce cauți.', 'nothing_found': 'Nu au fost găsite rezultate.', 'my_empty': 'Nu ai încă anunțuri.', 'support_prompt': '🆘 Scrie întrebarea ta.', 'support_sent': '✅ Mesajul a fost trimis administratorului.', 'admin_new': '🆕 <b>Anunț nou pentru moderare</b>', 'approve': '✅ Aprobă', 'reject': '❌ Respinge', 'approved_admin': '✅ Publicat', 'rejected_admin': '❌ Respins', 'contact_seller': '💬 Contactează vânzătorul', 'submit_again': '➕ Publică un anunț', 'contact_request': '📩 <b>Cerere nouă pentru anunțul tău!</b>', 'no_contact': 'Nu ai username Telegram. Introdu-l pentru contact.', 'invalid_photo': 'Trimite o fotografie.', 'invalid_text': 'Trimite un text.', 'language_changed': 'Limba a fost schimbată.', 'about_text': 'ℹ️ <b>Vitrina Freelance MD</b>\n\nPlatformă pentru găsirea specialiștilor și promovarea serviciilor în Moldova.', 'search_done': '🔎 Căutarea s-a încheiat.', 'status_pending': '⏳ În moderare', 'status_approved': '✅ Publicat', 'status_rejected': '❌ Respins', 'done': '📋 Gata.', 'stats_title': '📊 <b>Statisticile mele</b>', 'friends': '👥 Prieteni invitați', 'my_ads': '📝 Anunțurile mele', 'published_count': '✅ Publicate', 'bump_credits': '⬆️ Credite de ridicare', 'vip_credits': '⭐ Credite VIP', 'invite_title': '👥 <b>Invită prieteni</b>', 'personal_link': 'Linkul tău personal', 'invited': 'Invitați', 'rewards': '🎁 Recompense: 3 prieteni = 1 ridicare, 5 = încă 2 ridicări, 10 = 1 VIP.', 'share_invite': 'Trimite linkul celor care caută lucru, clienți sau specialiști.', 'ref_unavailable': 'Linkul de invitație nu este disponibil momentan.', 'bump_button': '⬆️ Ridică', 'vip_button': '⭐ VIP', 'no_bump': 'Nu ai credite de ridicare.', 'no_vip': 'Nu ai credite VIP.', 'bumped': '⬆️ Anunțul a fost ridicat în canal.', 'vip_used': '⭐ Publicarea VIP a fost plasată în canal.', 'not_yours': 'Acest anunț nu îți este disponibil.', 'only_published': 'Acțiunea este disponibilă doar pentru anunțurile publicate.', 'action_error': 'Acțiunea nu a putut fi efectuată. Încearcă din nou.', 'phone_invalid': 'Introdu un număr de telefon valid.', 'missing_data': '❗ Lipsesc date pentru anunț.', 'language_choose': '🌐 Alege limba:', 'share_ref': '📤 Distribuie pe Telegram', 'field_title': 'Titlu', 'field_description': 'Descriere', 'field_category': 'Categorie', 'field_budget': 'Buget', 'field_city': 'Oraș', 'field_deadline': 'Termen', 'field_experience': 'Experiență', 'field_portfolio': 'Portofoliu', 'field_phone': 'Telefon', 'field_contact': 'Contact', 'back': '↩️ Înapoi', 'kind_need': '🔎 Am nevoie de un specialist', 'kind_offer': '👨\u200d💻 Ofer servicii', 'label_category': 'Categorie', 'label_budget': 'Buget', 'label_city': 'Oraș', 'label_deadline': 'Termen', 'label_experience': 'Experiență', 'label_phone': 'Telefon', 'label_description': 'Descriere', 'label_portfolio': 'Portofoliu', 'label_contact': 'Contact', 'untitled': 'Fără titlu'}, 'en': {'welcome': '👋 <b>Welcome to Vitrina Freelance MD!</b>\n\nFind a specialist or offer your services in Moldova.', 'choose_ad_type': 'Choose listing type:', 'need_specialist': '🔎 I need a specialist', 'offer_service': '👨\u200d💻 I offer services', 'need_one_message': '📝 <b>Write your listing in one message.</b>\n\nDescribe what you need, city, budget, deadline and requirements.', 'offer_one_message': '📝 <b>Describe your service in one message.</b>\n\nInclude the service, city, price, experience and other useful details.', 'preview': '👀 <b>Listing preview</b>\n\n', 'edit': '✏️ Edit', 'add_photo': '📷 Add photo', 'delete_photo': '🗑 Delete photo', 'publish': '✅ Send for moderation', 'cancel': '❌ Cancel', 'choose_edit': 'What would you like to change?', 'edit_title': 'Enter a new title:', 'edit_description': 'Enter a new description:', 'edit_budget': 'Enter a new budget:', 'edit_city': 'Enter a new city:', 'edit_deadline': 'Enter a new deadline:', 'edit_experience': 'Enter experience information:', 'edit_portfolio': 'Enter portfolio link:', 'edit_contact': 'Enter Telegram username:', 'choose_category': 'Choose a category:', 'send_photo': 'Send the listing photo.', 'photo_added': '📷 Photo added.', 'photo_deleted': 'Photo deleted.', 'cancelled': '❌ Listing creation cancelled.', 'sent_moderation': '✅ Listing sent for moderation.\n\nIt will appear in the channel after approval.', 'published': '📢 <b>Your listing has been published in the channel!</b>', 'rejected': '❌ Your listing was rejected during moderation.', 'find': '🔎 Find a listing', 'mine': '📋 My listings', 'about': 'ℹ️ About', 'support': '🆘 Support', 'language': '🌐 Language', 'submit_ad': '➕ Post a listing', 'invite': '👥 Invite friends', 'search_prompt': '🔎 Type what you are looking for.\n\nFor example: <i>designer</i>, <i>electrician Chișinău</i>, <i>website</i>.', 'nothing_found': 'No matching listings found.', 'my_empty': 'You do not have any listings yet.', 'support_prompt': '🆘 Write your question in one message.', 'support_sent': '✅ Your message was sent to the administrator.', 'admin_new': '🆕 <b>New listing for moderation</b>', 'approve': '✅ Approve', 'reject': '❌ Reject', 'approved_admin': '✅ Published', 'rejected_admin': '❌ Rejected', 'contact_seller': '💬 Contact seller', 'submit_again': '➕ Post a listing', 'contact_request': '📩 <b>New request about your listing!</b>\n\nA user wants to contact you.', 'no_contact': 'You do not have a Telegram username. Please enter one for contact.', 'invalid_photo': 'Please send a photo.', 'invalid_text': 'Please send text.', 'language_changed': 'Language changed.', 'about_text': 'ℹ️ <b>Vitrina Freelance MD</b>\n\nA platform for finding specialists and offering services in Moldova.', 'search_done': '🔎 Search complete.', 'status_pending': '⏳ Under moderation', 'status_approved': '✅ Published', 'status_rejected': '❌ Rejected', 'done': '📋 Done.', 'stats_title': '📊 <b>My statistics</b>', 'friends': '👥 Friends invited', 'my_ads': '📝 My listings', 'published_count': '✅ Published', 'bump_credits': '⬆️ Bump credits', 'vip_credits': '⭐ VIP credits', 'invite_title': '👥 <b>Invite friends</b>', 'personal_link': 'Your personal link', 'invited': 'Invited', 'rewards': '🎁 Rewards: 3 friends = 1 bump, 5 = 2 more bumps, 10 = 1 VIP.', 'share_invite': 'Send the link to people looking for work, clients or specialists.', 'ref_unavailable': 'The invitation link is temporarily unavailable.', 'bump_button': '⬆️ Bump', 'vip_button': '⭐ VIP', 'no_bump': 'You have no bump credits.', 'no_vip': 'You have no VIP credits.', 'bumped': '⬆️ Your listing was bumped in the channel.', 'vip_used': '⭐ Your VIP post was published in the channel.', 'not_yours': 'This listing is not available to you.', 'only_published': 'This action is available only for published listings.', 'action_error': 'Could not complete the action. Please try again.', 'phone_invalid': 'Enter a valid phone number.', 'missing_data': '❗ Some listing data is missing.', 'language_choose': '🌐 Choose a language:', 'share_ref': '📤 Share on Telegram', 'field_title': 'Title', 'field_description': 'Description', 'field_category': 'Category', 'field_budget': 'Budget', 'field_city': 'City', 'field_deadline': 'Deadline', 'field_experience': 'Experience', 'field_portfolio': 'Portfolio', 'field_phone': 'Phone', 'field_contact': 'Contact', 'back': '↩️ Back', 'kind_need': '🔎 Specialist needed', 'kind_offer': '👨\u200d💻 Service offered', 'label_category': 'Category', 'label_budget': 'Budget', 'label_city': 'City', 'label_deadline': 'Deadline', 'label_experience': 'Experience', 'label_phone': 'Phone', 'label_description': 'Description', 'label_portfolio': 'Portfolio', 'label_contact': 'Contact', 'untitled': 'Untitled'}}
+TEXT = {'ru': {'welcome': '👋 <b>Добро пожаловать в VFM_D!</b>\n\nРабота, заказы, услуги и специалисты по всей Молдове. 🇲🇩',
+        'choose_ad_type': 'Выберите тип объявления:',
+        'need_specialist': '🔎 Мне нужен специалист',
+        'offer_service': '👨\u200d💻 Предлагаю свои услуги',
+        'need_one_message': '📝 <b>Напишите объявление одним сообщением.</b>\n'
+                            '\n'
+                            'Просто расскажите:\n'
+                            '• что нужно сделать;\n'
+                            '• город;\n'
+                            '• бюджет;\n'
+                            '• сроки;\n'
+                            '• опыт или требования;\n'
+                            '• дополнительную информацию.\n'
+                            '\n'
+                            'Я автоматически определю категорию и основные данные.',
+        'offer_one_message': '📝 <b>Напишите о своей услуге одним сообщением.</b>\n'
+                             '\n'
+                             'Например:\n'
+                             '• какую услугу предлагаете;\n'
+                             '• город;\n'
+                             '• цена;\n'
+                             '• опыт;\n'
+                             '• портфолио;\n'
+                             '• дополнительные условия.\n'
+                             '\n'
+                             'Я автоматически подготовлю объявление.',
+        'preview': '👀 <b>Предпросмотр объявления</b>\n\n',
+        'edit': '✏️ Изменить',
+        'add_photo': '📷 Добавить фото',
+        'delete_photo': '🗑 Удалить фото',
+        'publish': '✅ Отправить на модерацию',
+        'cancel': '❌ Отменить',
+        'choose_edit': 'Что хотите изменить?',
+        'edit_title': 'Введите новый заголовок:',
+        'edit_description': 'Введите новое описание:',
+        'edit_budget': 'Введите новый бюджет:',
+        'edit_city': 'Введите новый город:',
+        'edit_deadline': 'Введите новый срок:',
+        'edit_experience': 'Введите информацию об опыте:',
+        'edit_portfolio': 'Введите ссылку на портфолио:',
+        'edit_contact': 'Введите Telegram username для связи.\nНапример: @username',
+        'choose_category': 'Выберите категорию:',
+        'send_photo': 'Отправьте фотографию объявления.',
+        'photo_added': '📷 Фото добавлено.',
+        'photo_deleted': 'Фото удалено.',
+        'cancelled': '❌ Действие отменено.',
+        'sent_moderation': '✅ Объявление отправлено на модерацию.\n\nПосле проверки оно появится в канале.',
+        'published': '📢 <b>Объявление опубликовано в канале!</b>',
+        'rejected': '❌ Ваше объявление не прошло модерацию.',
+        'find': '🔎 Найти объявление',
+        'mine': '📋 Мои объявления',
+        'about': 'ℹ️ О проекте',
+        'support': '🆘 Поддержка',
+        'language': '🌐 Язык',
+        'submit_ad': '➕ Подать объявление',
+        'invite': '👥 Пригласить друзей',
+        'search_prompt': '🔎 Напишите, что вы ищете.\n\nНапример:\n<i>дизайнер</i>\n<i>монтажник Кишинёв</i>\n<i>создание сайта</i>',
+        'nothing_found': 'Ничего подходящего не найдено.',
+        'my_empty': 'У вас пока нет объявлений.',
+        'support_prompt': '🆘 Напишите свой вопрос одним сообщением.',
+        'support_sent': '✅ Сообщение отправлено администратору.',
+        'admin_new': '🆕 <b>Новое объявление на модерации</b>',
+        'approve': '✅ Одобрить',
+        'reject': '❌ Отклонить',
+        'approved_admin': '✅ Опубликовано',
+        'rejected_admin': '❌ Отклонено',
+        'contact_seller': '💬 Связаться с продавцом',
+        'submit_again': '➕ Подать объявление',
+        'contact_request': '📩 <b>Новый запрос по вашему объявлению!</b>\n\nПользователь хочет связаться с вами.',
+        'no_contact': 'У вас не указан Telegram username.\nПожалуйста, укажите его для связи.',
+        'invalid_photo': 'Пожалуйста, отправьте фотографию.',
+        'invalid_text': 'Пожалуйста, отправьте текст.',
+        'language_changed': 'Язык изменён.',
+        'about_text': 'ℹ️ <b>VFM_D — Vitrina Freelance Moldova</b>\n'
+                      '\n'
+                      '<b>Люди. Возможности. Молдова. 🇲🇩</b>\n'
+                      '\n'
+                      'Независимая цифровая платформа, которая объединяет людей, специалистов, бизнес и возможности.\n'
+                      '\n'
+                      '<b>Сегодня</b> — работа, заказы и услуги.\n'
+                      '<b>Завтра</b> — больше возможностей для жизни, работы и развития.\n'
+                      '\n'
+                      '<b>VFM_D — всё начинается с нужной связи.</b>',
+        'search_done': '🔎 Поиск завершён.',
+        'status_pending': '⏳ На модерации',
+        'status_approved': '✅ Опубликовано',
+        'status_rejected': '❌ Отклонено',
+        'done': '📋 Готово.',
+        'stats_title': '📊 <b>Моя статистика</b>',
+        'friends': '👥 Приглашено друзей',
+        'my_ads': '📝 Моих объявлений',
+        'published_count': '✅ Опубликовано',
+        'bump_credits': '⬆️ Кредитов поднятия',
+        'vip_credits': '⭐ VIP-кредитов',
+        'invite_title': '👥 <b>Пригласить друзей</b>',
+        'personal_link': 'Ваша персональная ссылка',
+        'invited': 'Приглашено',
+        'rewards': '🎁 Награды: 3 друга = 1 поднятие, 5 = ещё 2 поднятия, 10 = 1 VIP.',
+        'share_invite': 'Поделитесь VFM_D с теми, кому могут быть полезны работа, заказы, услуги или специалисты.',
+        'ref_unavailable': 'Ссылка приглашения временно недоступна.',
+        'bump_button': '⬆️ Поднять',
+        'vip_button': '⭐ VIP',
+        'no_bump': 'У вас нет кредитов поднятия.',
+        'no_vip': 'У вас нет VIP-кредитов.',
+        'bumped': '⬆️ Объявление поднято в канале.',
+        'vip_used': '⭐ VIP-публикация размещена в канале.',
+        'not_yours': 'Это объявление вам недоступно.',
+        'only_published': 'Действие доступно только для опубликованных объявлений.',
+        'action_error': 'Не удалось выполнить действие. Попробуйте позже.',
+        'phone_invalid': 'Введите корректный номер телефона.',
+        'missing_data': '❗ Не хватает данных для объявления.',
+        'language_choose': '🌐 Выберите язык:',
+        'share_ref': '📤 Telegram',
+        'field_title': 'Заголовок',
+        'field_description': 'Описание',
+        'field_category': 'Категория',
+        'field_budget': 'Бюджет',
+        'field_city': 'Город',
+        'field_deadline': 'Срок',
+        'field_experience': 'Опыт',
+        'field_portfolio': 'Портфолио',
+        'field_phone': 'Телефон',
+        'field_contact': 'Контакт',
+        'back': '↩️ Назад',
+        'kind_need': '🔎 Нужен специалист',
+        'kind_offer': '👨\u200d💻 Предлагаю услугу',
+        'label_category': 'Категория',
+        'label_budget': 'Бюджет',
+        'label_city': 'Город',
+        'label_deadline': 'Срок',
+        'label_experience': 'Опыт',
+        'label_phone': 'Телефон',
+        'label_description': 'Описание',
+        'label_portfolio': 'Портфолио',
+        'label_contact': 'Контакт',
+        'untitled': 'Без названия',
+        'invite_share_text': 'VFM_D — Vitrina Freelance Moldova 🇲🇩\n'
+                             'Люди. Возможности. Молдова.\n'
+                             'Работа, заказы, услуги и специалисты — в одном пространстве.\n'
+                             'Присоединяйтесь:'},
+ 'ro': {'welcome': '👋 <b>Bun venit la VFM_D!</b>\n\nLocuri de muncă, comenzi, servicii și specialiști în toată Moldova. 🇲🇩',
+        'choose_ad_type': 'Alege tipul anunțului:',
+        'need_specialist': '🔎 Am nevoie de un specialist',
+        'offer_service': '👨\u200d💻 Ofer servicii',
+        'need_one_message': '📝 <b>Scrie anunțul într-un singur mesaj.</b>\n\nSpune ce trebuie făcut, orașul, bugetul și termenul.',
+        'offer_one_message': '📝 <b>Scrie despre serviciul tău într-un singur mesaj.</b>\n'
+                             '\n'
+                             'Spune ce serviciu oferi, orașul, prețul și experiența.',
+        'preview': '👀 <b>Previzualizarea anunțului</b>\n\n',
+        'edit': '✏️ Modifică',
+        'add_photo': '📷 Adaugă fotografie',
+        'delete_photo': '🗑 Șterge fotografia',
+        'publish': '✅ Trimite pentru moderare',
+        'cancel': '❌ Anulează',
+        'choose_edit': 'Ce dorești să modifici?',
+        'edit_title': 'Introdu noul titlu:',
+        'edit_description': 'Introdu noua descriere:',
+        'edit_budget': 'Introdu noul buget:',
+        'edit_city': 'Introdu noul oraș:',
+        'edit_deadline': 'Introdu noul termen:',
+        'edit_experience': 'Introdu experiența:',
+        'edit_portfolio': 'Introdu linkul portofoliului:',
+        'edit_contact': 'Introdu username-ul Telegram:',
+        'choose_category': 'Alege categoria:',
+        'send_photo': 'Trimite fotografia anunțului.',
+        'photo_added': '📷 Fotografia a fost adăugată.',
+        'photo_deleted': 'Fotografia a fost ștearsă.',
+        'cancelled': '❌ Acțiunea a fost anulată.',
+        'sent_moderation': '✅ Anunțul a fost trimis pentru moderare.',
+        'published': '📢 <b>Anunțul a fost publicat pe canal!</b>',
+        'rejected': '❌ Anunțul nu a trecut moderarea.',
+        'find': '🔎 Găsește un anunț',
+        'mine': '📋 Anunțurile mele',
+        'about': 'ℹ️ Despre proiect',
+        'support': '🆘 Suport',
+        'language': '🌐 Limbă',
+        'submit_ad': '➕ Publică un anunț',
+        'invite': '👥 Invită prieteni',
+        'search_prompt': '🔎 Scrie ce cauți.',
+        'nothing_found': 'Nu au fost găsite rezultate.',
+        'my_empty': 'Nu ai încă anunțuri.',
+        'support_prompt': '🆘 Scrie întrebarea ta.',
+        'support_sent': '✅ Mesajul a fost trimis administratorului.',
+        'admin_new': '🆕 <b>Anunț nou pentru moderare</b>',
+        'approve': '✅ Aprobă',
+        'reject': '❌ Respinge',
+        'approved_admin': '✅ Publicat',
+        'rejected_admin': '❌ Respins',
+        'contact_seller': '💬 Contactează vânzătorul',
+        'submit_again': '➕ Publică un anunț',
+        'contact_request': '📩 <b>Cerere nouă pentru anunțul tău!</b>',
+        'no_contact': 'Nu ai username Telegram. Introdu-l pentru contact.',
+        'invalid_photo': 'Trimite o fotografie.',
+        'invalid_text': 'Trimite un text.',
+        'language_changed': 'Limba a fost schimbată.',
+        'about_text': 'ℹ️ <b>VFM_D — Vitrina Freelance Moldova</b>\n'
+                      '\n'
+                      '<b>Oameni. Oportunități. Moldova. 🇲🇩</b>\n'
+                      '\n'
+                      'O platformă digitală independentă care conectează oameni, specialiști, afaceri și oportunități.\n'
+                      '\n'
+                      '<b>Astăzi</b> — locuri de muncă, comenzi și servicii.\n'
+                      '<b>Mâine</b> — mai multe oportunități pentru viață, muncă și dezvoltare.\n'
+                      '\n'
+                      '<b>VFM_D — totul începe cu conexiunea potrivită.</b>',
+        'search_done': '🔎 Căutarea s-a încheiat.',
+        'status_pending': '⏳ În moderare',
+        'status_approved': '✅ Publicat',
+        'status_rejected': '❌ Respins',
+        'done': '📋 Gata.',
+        'stats_title': '📊 <b>Statisticile mele</b>',
+        'friends': '👥 Prieteni invitați',
+        'my_ads': '📝 Anunțurile mele',
+        'published_count': '✅ Publicate',
+        'bump_credits': '⬆️ Credite de ridicare',
+        'vip_credits': '⭐ Credite VIP',
+        'invite_title': '👥 <b>Invită prieteni</b>',
+        'personal_link': 'Linkul tău personal',
+        'invited': 'Invitați',
+        'rewards': '🎁 Recompense: 3 prieteni = 1 ridicare, 5 = încă 2 ridicări, 10 = 1 VIP.',
+        'share_invite': 'Distribuie VFM_D celor cărora le-ar putea fi utile locuri de muncă, comenzi, servicii sau specialiști.',
+        'ref_unavailable': 'Linkul de invitație nu este disponibil momentan.',
+        'bump_button': '⬆️ Ridică',
+        'vip_button': '⭐ VIP',
+        'no_bump': 'Nu ai credite de ridicare.',
+        'no_vip': 'Nu ai credite VIP.',
+        'bumped': '⬆️ Anunțul a fost ridicat în canal.',
+        'vip_used': '⭐ Publicarea VIP a fost plasată în canal.',
+        'not_yours': 'Acest anunț nu îți este disponibil.',
+        'only_published': 'Acțiunea este disponibilă doar pentru anunțurile publicate.',
+        'action_error': 'Acțiunea nu a putut fi efectuată. Încearcă din nou.',
+        'phone_invalid': 'Introdu un număr de telefon valid.',
+        'missing_data': '❗ Lipsesc date pentru anunț.',
+        'language_choose': '🌐 Alege limba:',
+        'share_ref': '📤 Telegram',
+        'field_title': 'Titlu',
+        'field_description': 'Descriere',
+        'field_category': 'Categorie',
+        'field_budget': 'Buget',
+        'field_city': 'Oraș',
+        'field_deadline': 'Termen',
+        'field_experience': 'Experiență',
+        'field_portfolio': 'Portofoliu',
+        'field_phone': 'Telefon',
+        'field_contact': 'Contact',
+        'back': '↩️ Înapoi',
+        'kind_need': '🔎 Am nevoie de un specialist',
+        'kind_offer': '👨\u200d💻 Ofer servicii',
+        'label_category': 'Categorie',
+        'label_budget': 'Buget',
+        'label_city': 'Oraș',
+        'label_deadline': 'Termen',
+        'label_experience': 'Experiență',
+        'label_phone': 'Telefon',
+        'label_description': 'Descriere',
+        'label_portfolio': 'Portofoliu',
+        'label_contact': 'Contact',
+        'untitled': 'Fără titlu',
+        'invite_share_text': 'VFM_D — Vitrina Freelance Moldova 🇲🇩\n'
+                             'Oameni. Oportunități. Moldova.\n'
+                             'Locuri de muncă, comenzi, servicii și specialiști — într-un singur spațiu.\n'
+                             'Alătură-te:'},
+ 'en': {'welcome': '👋 <b>Welcome to VFM_D!</b>\n\nJobs, gigs, services and specialists across Moldova. 🇲🇩',
+        'choose_ad_type': 'Choose listing type:',
+        'need_specialist': '🔎 I need a specialist',
+        'offer_service': '👨\u200d💻 I offer services',
+        'need_one_message': '📝 <b>Write your listing in one message.</b>\n'
+                            '\n'
+                            'Describe what you need, city, budget, deadline and requirements.',
+        'offer_one_message': '📝 <b>Describe your service in one message.</b>\n'
+                             '\n'
+                             'Include the service, city, price, experience and other useful details.',
+        'preview': '👀 <b>Listing preview</b>\n\n',
+        'edit': '✏️ Edit',
+        'add_photo': '📷 Add photo',
+        'delete_photo': '🗑 Delete photo',
+        'publish': '✅ Send for moderation',
+        'cancel': '❌ Cancel',
+        'choose_edit': 'What would you like to change?',
+        'edit_title': 'Enter a new title:',
+        'edit_description': 'Enter a new description:',
+        'edit_budget': 'Enter a new budget:',
+        'edit_city': 'Enter a new city:',
+        'edit_deadline': 'Enter a new deadline:',
+        'edit_experience': 'Enter experience information:',
+        'edit_portfolio': 'Enter portfolio link:',
+        'edit_contact': 'Enter Telegram username:',
+        'choose_category': 'Choose a category:',
+        'send_photo': 'Send the listing photo.',
+        'photo_added': '📷 Photo added.',
+        'photo_deleted': 'Photo deleted.',
+        'cancelled': '❌ Action cancelled.',
+        'sent_moderation': '✅ Listing sent for moderation.\n\nIt will appear in the channel after approval.',
+        'published': '📢 <b>Your listing has been published in the channel!</b>',
+        'rejected': '❌ Your listing was rejected during moderation.',
+        'find': '🔎 Find a listing',
+        'mine': '📋 My listings',
+        'about': 'ℹ️ About',
+        'support': '🆘 Support',
+        'language': '🌐 Language',
+        'submit_ad': '➕ Post a listing',
+        'invite': '👥 Invite friends',
+        'search_prompt': '🔎 Type what you are looking for.\n\nFor example: <i>designer</i>, <i>electrician Chișinău</i>, <i>website</i>.',
+        'nothing_found': 'No matching listings found.',
+        'my_empty': 'You do not have any listings yet.',
+        'support_prompt': '🆘 Write your question in one message.',
+        'support_sent': '✅ Your message was sent to the administrator.',
+        'admin_new': '🆕 <b>New listing for moderation</b>',
+        'approve': '✅ Approve',
+        'reject': '❌ Reject',
+        'approved_admin': '✅ Published',
+        'rejected_admin': '❌ Rejected',
+        'contact_seller': '💬 Contact seller',
+        'submit_again': '➕ Post a listing',
+        'contact_request': '📩 <b>New request about your listing!</b>\n\nA user wants to contact you.',
+        'no_contact': 'You do not have a Telegram username. Please enter one for contact.',
+        'invalid_photo': 'Please send a photo.',
+        'invalid_text': 'Please send text.',
+        'language_changed': 'Language changed.',
+        'about_text': 'ℹ️ <b>VFM_D — Vitrina Freelance Moldova</b>\n'
+                      '\n'
+                      '<b>People. Opportunities. Moldova. 🇲🇩</b>\n'
+                      '\n'
+                      'An independent digital platform connecting people, professionals, businesses and opportunities.\n'
+                      '\n'
+                      '<b>Today</b> — jobs, gigs and services.\n'
+                      '<b>Tomorrow</b> — more opportunities to live, work and grow.\n'
+                      '\n'
+                      '<b>VFM_D — it all starts with the right connection.</b>',
+        'search_done': '🔎 Search complete.',
+        'status_pending': '⏳ Under moderation',
+        'status_approved': '✅ Published',
+        'status_rejected': '❌ Rejected',
+        'done': '📋 Done.',
+        'stats_title': '📊 <b>My statistics</b>',
+        'friends': '👥 Friends invited',
+        'my_ads': '📝 My listings',
+        'published_count': '✅ Published',
+        'bump_credits': '⬆️ Bump credits',
+        'vip_credits': '⭐ VIP credits',
+        'invite_title': '👥 <b>Invite friends</b>',
+        'personal_link': 'Your personal link',
+        'invited': 'Invited',
+        'rewards': '🎁 Rewards: 3 friends = 1 bump, 5 = 2 more bumps, 10 = 1 VIP.',
+        'share_invite': 'Share VFM_D with people who may benefit from jobs, gigs, services or specialists.',
+        'ref_unavailable': 'The invitation link is temporarily unavailable.',
+        'bump_button': '⬆️ Bump',
+        'vip_button': '⭐ VIP',
+        'no_bump': 'You have no bump credits.',
+        'no_vip': 'You have no VIP credits.',
+        'bumped': '⬆️ Your listing was bumped in the channel.',
+        'vip_used': '⭐ Your VIP post was published in the channel.',
+        'not_yours': 'This listing is not available to you.',
+        'only_published': 'This action is available only for published listings.',
+        'action_error': 'Could not complete the action. Please try again.',
+        'phone_invalid': 'Enter a valid phone number.',
+        'missing_data': '❗ Some listing data is missing.',
+        'language_choose': '🌐 Choose a language:',
+        'share_ref': '📤 Telegram',
+        'field_title': 'Title',
+        'field_description': 'Description',
+        'field_category': 'Category',
+        'field_budget': 'Budget',
+        'field_city': 'City',
+        'field_deadline': 'Deadline',
+        'field_experience': 'Experience',
+        'field_portfolio': 'Portfolio',
+        'field_phone': 'Phone',
+        'field_contact': 'Contact',
+        'back': '↩️ Back',
+        'kind_need': '🔎 Specialist needed',
+        'kind_offer': '👨\u200d💻 Service offered',
+        'label_category': 'Category',
+        'label_budget': 'Budget',
+        'label_city': 'City',
+        'label_deadline': 'Deadline',
+        'label_experience': 'Experience',
+        'label_phone': 'Phone',
+        'label_description': 'Description',
+        'label_portfolio': 'Portfolio',
+        'label_contact': 'Contact',
+        'untitled': 'Untitled',
+        'invite_share_text': 'VFM_D — Vitrina Freelance Moldova 🇲🇩\n'
+                             'People. Opportunities. Moldova.\n'
+                             'Jobs, gigs, services and specialists — all in one place.\n'
+                             'Join us:'}}
 
 
 # ============================================================
@@ -1642,14 +2027,39 @@ def referral_count(user_id):
 
 def send_referral_link(chat_id, user_id):
     if not BOT_USERNAME:
-        bot.send_message(chat_id, tr(user_id, "ref_unavailable")); return
-    link=f"https://t.me/{BOT_USERNAME}?start=ref_{user_id}"
-    count=referral_count(user_id)
-    conn=get_db(); wallet=conn.execute("SELECT bump_credits, vip_credits FROM growth_wallet WHERE user_id=?",(user_id,)).fetchone(); conn.close()
-    bumps=int(wallet["bump_credits"]) if wallet else 0; vips=int(wallet["vip_credits"]) if wallet else 0
-    share_url="https://t.me/share/url?url="+quote(link,safe="")+"&text="+quote("Vitrina Freelance MD",safe="")
-    markup=types.InlineKeyboardMarkup(); markup.add(types.InlineKeyboardButton(tr(user_id,"share_ref"),url=share_url))
-    bot.send_message(chat_id, f"{tr(user_id,'invite_title')}\n\n{tr(user_id,'personal_link')}:\n{html.escape(link)}\n\n{tr(user_id,'invited')}: <b>{count}</b>\n{tr(user_id,'bump_credits')}: <b>{bumps}</b>\n{tr(user_id,'vip_credits')}: <b>{vips}</b>\n\n{tr(user_id,'rewards')}\n\n{tr(user_id,'share_invite')}", reply_markup=markup)
+        bot.send_message(chat_id, tr(user_id, "ref_unavailable"))
+        return
+
+    link = f"https://t.me/{BOT_USERNAME}?start=ref_{user_id}"
+    count = referral_count(user_id)
+    conn = get_db()
+    wallet = conn.execute(
+        "SELECT bump_credits, vip_credits FROM growth_wallet WHERE user_id=?",
+        (user_id,)
+    ).fetchone()
+    conn.close()
+    bumps = int(wallet["bump_credits"]) if wallet else 0
+    vips = int(wallet["vip_credits"]) if wallet else 0
+
+    share_text = f"{tr(user_id, 'invite_share_text')}\n{link}"
+    telegram_url = "https://t.me/share/url?url=" + quote(link, safe="") + "&text=" + quote(tr(user_id, "invite_share_text"), safe="")
+    whatsapp_url = "https://wa.me/?text=" + quote(share_text, safe="")
+    markup = types.InlineKeyboardMarkup()
+    markup.row(
+        types.InlineKeyboardButton("📤 Telegram", url=telegram_url),
+        types.InlineKeyboardButton("🟢 WhatsApp", url=whatsapp_url),
+    )
+
+    bot.send_message(
+        chat_id,
+        f"{tr(user_id,'invite_title')}\n\n"
+        f"{tr(user_id,'personal_link')}:\n{html.escape(link)}\n\n"
+        f"{tr(user_id,'invited')}: <b>{count}</b>\n"
+        f"{tr(user_id,'bump_credits')}: <b>{bumps}</b>\n"
+        f"{tr(user_id,'vip_credits')}: <b>{vips}</b>\n\n"
+        f"{tr(user_id,'rewards')}\n\n{tr(user_id,'share_invite')}",
+        reply_markup=markup
+    )
 
 
 # ============================================================
@@ -2592,8 +3002,24 @@ def language_callback(call):
 # SEARCH
 # ============================================================
 
+def _search_normalize(value):
+    value = (value or "").lower().replace("ё", "е")
+    value = value.replace("ș", "s").replace("ş", "s").replace("ț", "t").replace("ţ", "t")
+    value = value.replace("ă", "a").replace("â", "a").replace("î", "i")
+    value = re.sub(r"[^0-9a-zа-я]+", " ", value, flags=re.IGNORECASE)
+    return re.sub(r"\s+", " ", value).strip()
+
+
+def _search_word_matches(word, haystack):
+    if word in haystack:
+        return True
+    if len(word) >= 4:
+        stem = word[:max(4, len(word) - 2)]
+        return any(token.startswith(stem) for token in haystack.split())
+    return False
+
 def show_search_results(chat_id, user_id, query):
-    query_lower = query.lower().strip()
+    query_lower = _search_normalize(query)
 
     conn = get_db()
 
@@ -2617,28 +3043,21 @@ def show_search_results(chat_id, user_id, query):
     results = []
 
     for row in rows:
-        haystack = " ".join([
+        haystack = _search_normalize(" ".join([
             row["title"] or "",
             row["category"] or "",
             row["description"] or "",
             row["city"] or "",
             row["budget"] or "",
-        ]).lower()
+            row["experience"] or "",
+        ]))
 
-        words = [
-            word
-            for word in re.findall(
-                r"\w+",
-                query_lower,
-                flags=re.UNICODE
-            )
-            if len(word) >= 2
-        ]
+        words = [word for word in query_lower.split() if len(word) >= 2]
 
         if not words:
             continue
 
-        if all(word in haystack for word in words):
+        if all(_search_word_matches(word, haystack) for word in words):
             results.append(row)
 
     if not results:
@@ -2908,7 +3327,7 @@ if __name__ == "__main__":
     channel_target = get_channel_target()
 
     logger.info(
-        "Vitrina Freelance MD started"
+        "VFM_D — Vitrina Freelance Moldova started"
     )
 
     logger.info(
