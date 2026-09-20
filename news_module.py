@@ -368,16 +368,26 @@ def publish_one_if_due(bot, db_path, channel_target, bot_username):
         conn.close()
 
 
-
 def handle_listing_published(bot, db_path, channel_target, bot_username):
-    """Count a successful listing and immediately publish queued news if due."""
-    register_listing_published(db_path)
+    """Count a successful NEW listing and publish one relevant news item when due.
+
+    If the queue is empty at the threshold, refresh RSS immediately and retry once.
+    The counter is reset only by publish_one_if_due after Telegram confirms publication.
+    """
+    count = register_listing_published(db_path)
+    if count < NEWS_AFTER_LISTINGS:
+        return False
+
+    if publish_one_if_due(bot, db_path, channel_target, bot_username):
+        return True
+
+    # Threshold reached but queue may be empty/stale. Refresh now instead of waiting
+    # for the background interval, then make one more safe attempt.
+    collect_news(db_path)
     return publish_one_if_due(
-        bot=bot,
-        db_path=db_path,
-        channel_target=channel_target,
-        bot_username=bot_username,
+        bot=bot, db_path=db_path, channel_target=channel_target, bot_username=bot_username
     )
+
 
 
 def recover_interrupted_news(db_path):
