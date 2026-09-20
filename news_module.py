@@ -261,7 +261,7 @@ def _format_news(row):
     summary = _short_summary(row["summary"] or "", 420)
 
     lines = [
-        "📰 <b>НОВОСТИ VITRINA</b>",
+        "📰 <b>НОВОСТИ VFM_D</b>",
         "",
         f"{category}",
         f"<b>{title}</b>",
@@ -306,6 +306,10 @@ def publish_one_if_due(bot, db_path, channel_target, bot_username):
         """).fetchone()
 
         if not row:
+            logger.info(
+                "News is due (listings_since_news=%s) but no fresh relevant queued item is available; counter is preserved",
+                count
+            )
             conn.rollback()
             return False
 
