@@ -3,6 +3,8 @@ import re
 import html
 import sqlite3
 import logging
+import time
+from pathlib import Path
 from urllib.parse import quote
 from datetime import datetime
 
@@ -513,14 +515,24 @@ CITY_ALIASES = {
 # ============================================================
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
+    # Create the parent directory automatically when DB_PATH points to a Render Disk
+    # (for example /var/data/vitrina.db).
+    db_parent = Path(DB_PATH).expanduser().resolve().parent
+    db_parent.mkdir(parents=True, exist_ok=True)
+
+    conn = sqlite3.connect(DB_PATH, timeout=30)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA busy_timeout = 30000")
+    conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 
 def init_db():
     conn = get_db()
     cur = conn.cursor()
+    # WAL improves SQLite reliability when the bot and news worker use the DB concurrently.
+    cur.execute("PRAGMA journal_mode = WAL")
+    cur.execute("PRAGMA synchronous = NORMAL")
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
@@ -566,6 +578,17 @@ def init_db():
     """)
 
     cur.execute("""
+        CREATE TABLE IF NOT EXISTS promotion_redemptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            listing_id INTEGER NOT NULL,
+            promotion_type TEXT NOT NULL,
+            channel_message_id INTEGER,
+            created_at TEXT NOT NULL
+        )
+    """)
+
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS listings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -590,6 +613,13 @@ def init_db():
     listing_columns = {row[1] for row in cur.execute("PRAGMA table_info(listings)").fetchall()}
     if "phone" not in listing_columns:
         cur.execute("ALTER TABLE listings ADD COLUMN phone TEXT")
+
+    # Indexes keep admin/search/profile queries fast as the project grows.
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_listings_user ON listings(user_id, id DESC)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_listings_status ON listings(status, id DESC)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_listings_category ON listings(category, status)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_user_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_promotions_user ON promotion_redemptions(user_id, created_at)")
 
     conn.commit()
     conn.close()
@@ -833,6 +863,7 @@ def edit_keyboard(user_id):
         ("deadline", "Срок"),
         ("experience", "Опыт"),
         ("portfolio", "Портфолио"),
+        ("phone", "Телефон"),
         ("contact", "Контакт"),
     ]
 
@@ -1868,6 +1899,14 @@ def register_referral(invited_user_id, referrer_user_id):
         return False
     conn = get_db()
     try:
+        # A referral is valid only when the inviter is already a known bot user.
+        referrer = conn.execute(
+            "SELECT 1 FROM users WHERE user_id = ?",
+            (referrer_user_id,)
+        ).fetchone()
+        if not referrer:
+            return False
+
         existing = conn.execute(
             "SELECT 1 FROM referrals WHERE invited_user_id = ?",
             (invited_user_id,)
@@ -1890,22 +1929,25 @@ def register_referral(invited_user_id, referrer_user_id):
         rewards = {3: ("bump", 1), 5: ("bump", 2), 10: ("vip", 1)}
         if count in rewards:
             reward_type, amount = rewards[count]
-            conn.execute(
+            reward_cursor = conn.execute(
                 "INSERT OR IGNORE INTO referral_rewards "
                 "(referrer_user_id, milestone, reward_type, reward_amount, created_at) "
                 "VALUES (?, ?, ?, ?, ?)",
                 (referrer_user_id, count, reward_type, amount, current_time())
             )
-            conn.execute(
-                "INSERT OR IGNORE INTO growth_wallet "
-                "(user_id, bump_credits, vip_credits, updated_at) VALUES (?, 0, 0, ?)",
-                (referrer_user_id, current_time())
-            )
-            column = "bump_credits" if reward_type == "bump" else "vip_credits"
-            conn.execute(
-                f"UPDATE growth_wallet SET {column} = {column} + ?, updated_at = ? WHERE user_id = ?",
-                (amount, current_time(), referrer_user_id)
-            )
+            # Credit the wallet only when this milestone was inserted now.
+            # This makes referral rewards idempotent.
+            if reward_cursor.rowcount == 1:
+                conn.execute(
+                    "INSERT OR IGNORE INTO growth_wallet "
+                    "(user_id, bump_credits, vip_credits, updated_at) VALUES (?, 0, 0, ?)",
+                    (referrer_user_id, current_time())
+                )
+                column = "bump_credits" if reward_type == "bump" else "vip_credits"
+                conn.execute(
+                    f"UPDATE growth_wallet SET {column} = {column} + ?, updated_at = ? WHERE user_id = ?",
+                    (amount, current_time(), referrer_user_id)
+                )
         conn.commit()
         logger.info("Referral registered: %s -> %s", referrer_user_id, invited_user_id)
         return True
@@ -1945,6 +1987,131 @@ def send_referral_link(chat_id, user_id):
         "🎁 Награды: 3 друга = 1 поднятие, 5 = ещё 2 поднятия, 10 = 1 VIP.\n\n"
         "Отправьте ссылку знакомым, которым нужны работа, клиенты или специалисты."
     )
+
+
+# ============================================================
+# GROWTH: FREE PROMOTIONS / FUTURE MONETIZATION FOUNDATION
+# ============================================================
+
+def get_wallet(user_id):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT bump_credits, vip_credits FROM growth_wallet WHERE user_id = ?",
+        (user_id,)
+    ).fetchone()
+    conn.close()
+    return {
+        "bump": int(row["bump_credits"]) if row else 0,
+        "vip": int(row["vip_credits"]) if row else 0,
+    }
+
+
+def promotion_keyboard(listing_id, wallet):
+    markup = types.InlineKeyboardMarkup()
+    markup.row(
+        types.InlineKeyboardButton(
+            f"⬆️ Поднять ({wallet['bump']})",
+            callback_data=f"promo:bump:{listing_id}"
+        ),
+        types.InlineKeyboardButton(
+            f"⭐ VIP ({wallet['vip']})",
+            callback_data=f"promo:vip:{listing_id}"
+        )
+    )
+    return markup
+
+
+def publish_promoted_listing(row, promotion_type):
+    """Repost an approved listing without incrementing the news counter."""
+    target = get_channel_target()
+    if not target:
+        raise RuntimeError("Канал не настроен.")
+
+    base = build_public_text(row, limit=900 if row["photo_id"] else 3900)
+    if promotion_type == "vip":
+        prefix = "⭐ <b>VIP-ОБЪЯВЛЕНИЕ</b>\n\n"
+    else:
+        prefix = "⬆️ <b>ПОДНЯТО</b>\n\n"
+    text = prefix + base
+    keyboard = publish_keyboard(row)
+
+    if row["photo_id"]:
+        message = bot.send_photo(target, row["photo_id"], caption=text[:1024], reply_markup=keyboard)
+    else:
+        message = bot.send_message(target, text[:4096], reply_markup=keyboard, disable_web_page_preview=True)
+
+    try:
+        bot.edit_message_reply_markup(
+            chat_id=target,
+            message_id=message.message_id,
+            reply_markup=publish_keyboard(row, message.message_id)
+        )
+    except Exception as exc:
+        logger.warning("Could not add share button to promoted listing %s: %s", row["id"], exc)
+    return message.message_id
+
+
+def redeem_promotion(user_id, listing_id, promotion_type):
+    if promotion_type not in {"bump", "vip"}:
+        return False, "Неизвестный тип продвижения."
+
+    column = "bump_credits" if promotion_type == "bump" else "vip_credits"
+    conn = get_db()
+    try:
+        row = conn.execute(
+            """
+            SELECT listings.*, users.username, users.first_name
+            FROM listings
+            LEFT JOIN users ON users.user_id = listings.user_id
+            WHERE listings.id = ? AND listings.user_id = ? AND listings.status = 'approved'
+            """,
+            (listing_id, user_id)
+        ).fetchone()
+        if not row:
+            return False, "Объявление не найдено или ещё не опубликовано."
+
+        # Atomic reservation: only one concurrent click can spend the last credit.
+        cursor = conn.execute(
+            f"UPDATE growth_wallet SET {column} = {column} - 1, updated_at = ? "
+            f"WHERE user_id = ? AND {column} > 0",
+            (current_time(), user_id)
+        )
+        if cursor.rowcount != 1:
+            conn.rollback()
+            return False, "Недостаточно кредитов. Приглашайте друзей, чтобы получать продвижение."
+        conn.commit()
+    finally:
+        conn.close()
+
+    try:
+        message_id = publish_promoted_listing(row, promotion_type)
+    except Exception:
+        logger.exception("Promotion publication failed for user=%s listing=%s", user_id, listing_id)
+        # Telegram failed: return the reserved credit.
+        refund = get_db()
+        try:
+            refund.execute(
+                f"UPDATE growth_wallet SET {column} = {column} + 1, updated_at = ? WHERE user_id = ?",
+                (current_time(), user_id)
+            )
+            refund.commit()
+        finally:
+            refund.close()
+        return False, "Не удалось выполнить продвижение. Кредит возвращён."
+
+    conn = get_db()
+    try:
+        conn.execute(
+            "INSERT INTO promotion_redemptions "
+            "(user_id, listing_id, promotion_type, channel_message_id, created_at) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (user_id, listing_id, promotion_type, message_id, current_time())
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    return True, "⭐ VIP-размещение опубликовано." if promotion_type == "vip" else "⬆️ Объявление поднято."
 
 
 # ============================================================
@@ -2206,6 +2373,7 @@ def edit_field_callback(call):
         "deadline": "edit_deadline",
         "experience": "edit_experience",
         "portfolio": "edit_portfolio",
+        "phone": "edit_contact",
         "contact": "edit_contact",
     }
 
@@ -2562,6 +2730,10 @@ def admin_callback(call):
 # ============================================================
 
 @bot.message_handler(
+    func=lambda message: (
+        message.content_type != "text"
+        or not (message.text or "").lstrip().startswith("/")
+    ),
     content_types=["text", "photo"]
 )
 def form_input(message):
@@ -2780,9 +2952,17 @@ def form_input(message):
             "deadline",
             "experience",
             "portfolio",
+            "phone",
             "contact",
         }:
-            data[field] = text.strip()
+            if field == "phone":
+                normalized_phone = extract_phone(text)
+                if not normalized_phone:
+                    bot.send_message(chat_id, "Введите корректный номер телефона.")
+                    return
+                data[field] = normalized_phone
+            else:
+                data[field] = text.strip()
 
             state["step"] = "preview"
 
@@ -3077,9 +3257,14 @@ def show_my_listings(chat_id, user_id):
             f"📂 {html.escape(category_label(row['category'] or 'other'))}"
         )
 
+        reply_markup = None
+        if row["status"] == "approved":
+            reply_markup = promotion_keyboard(row["id"], get_wallet(user_id))
+
         bot.send_message(
             chat_id,
-            text
+            text,
+            reply_markup=reply_markup
         )
 
     bot.send_message(
@@ -3087,6 +3272,29 @@ def show_my_listings(chat_id, user_id):
         "📋 Готово.",
         reply_markup=main_menu(user_id)
     )
+
+
+# ============================================================
+# PROMOTION CALLBACK
+# ============================================================
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("promo:"))
+def promotion_callback(call):
+    parts = call.data.split(":")
+    if len(parts) != 3:
+        bot.answer_callback_query(call.id)
+        return
+    promotion_type = parts[1]
+    try:
+        listing_id = int(parts[2])
+    except ValueError:
+        bot.answer_callback_query(call.id)
+        return
+
+    # Fast acknowledgement prevents Telegram's loading spinner from hanging.
+    bot.answer_callback_query(call.id, "Обрабатываю…")
+    ok, message = redeem_promotion(call.from_user.id, listing_id, promotion_type)
+    bot.send_message(call.message.chat.id, message, reply_markup=main_menu(call.from_user.id))
 
 
 # ============================================================
@@ -3184,6 +3392,107 @@ def growth_admin_callback(call):
 
 
 # ============================================================
+# ADMIN OPERATIONS
+# ============================================================
+
+@bot.message_handler(commands=["reply"])
+def support_reply_handler(message):
+    if message.from_user.id != ADMIN_ID:
+        return
+    parts = (message.text or "").split(maxsplit=2)
+    if len(parts) != 3:
+        bot.send_message(message.chat.id, "Использование: <code>/reply USER_ID текст ответа</code>")
+        return
+    try:
+        user_id = int(parts[1])
+    except ValueError:
+        bot.send_message(message.chat.id, "Неверный User ID.")
+        return
+    try:
+        bot.send_message(
+            user_id,
+            "🆘 <b>Ответ поддержки Vitrina</b>\n\n" + html.escape(parts[2])
+        )
+        bot.send_message(message.chat.id, "✅ Ответ отправлен.")
+    except Exception:
+        logger.exception("Support reply failed for user=%s", user_id)
+        bot.send_message(message.chat.id, "Не удалось отправить ответ пользователю.")
+
+
+@bot.message_handler(commands=["health"])
+def health_handler(message):
+    if message.from_user.id != ADMIN_ID:
+        return
+    conn = get_db()
+    try:
+        conn.execute("SELECT 1").fetchone()
+        db_status = "OK"
+    except Exception:
+        db_status = "ERROR"
+    finally:
+        conn.close()
+    disk_hint = "persistent" if str(Path(DB_PATH)).startswith("/var/data/") else "local/ephemeral?"
+    bot.send_message(
+        message.chat.id,
+        "🩺 <b>Vitrina health</b>\n\n"
+        f"Bot: <b>OK</b>\nDB: <b>{db_status}</b>\n"
+        f"DB_PATH: <code>{html.escape(DB_PATH)}</code>\nStorage: <b>{disk_hint}</b>"
+    )
+
+
+@bot.message_handler(commands=["grant"])
+def grant_handler(message):
+    if message.from_user.id != ADMIN_ID:
+        return
+    parts = (message.text or "").split()
+    if len(parts) != 4:
+        bot.send_message(message.chat.id, "Использование: <code>/grant USER_ID bump|vip КОЛИЧЕСТВО</code>")
+        return
+    try:
+        user_id = int(parts[1])
+        reward_type = parts[2].lower()
+        amount = int(parts[3])
+    except ValueError:
+        bot.send_message(message.chat.id, "Неверные параметры.")
+        return
+    if reward_type not in {"bump", "vip"} or not (1 <= amount <= 100):
+        bot.send_message(message.chat.id, "Тип: bump или vip. Количество: 1–100.")
+        return
+    column = "bump_credits" if reward_type == "bump" else "vip_credits"
+    conn = get_db()
+    conn.execute(
+        "INSERT OR IGNORE INTO growth_wallet (user_id, bump_credits, vip_credits, updated_at) VALUES (?, 0, 0, ?)",
+        (user_id, current_time())
+    )
+    conn.execute(
+        f"UPDATE growth_wallet SET {column} = {column} + ?, updated_at = ? WHERE user_id = ?",
+        (amount, current_time(), user_id)
+    )
+    conn.commit()
+    conn.close()
+    bot.send_message(message.chat.id, f"✅ Начислено: {reward_type} × {amount} пользователю <code>{user_id}</code>.")
+
+
+@bot.message_handler(commands=["backup"])
+def backup_handler(message):
+    if message.from_user.id != ADMIN_ID:
+        return
+    try:
+        backup_path = Path("/tmp/vitrina_backup.sqlite3")
+        source = get_db()
+        destination = sqlite3.connect(str(backup_path))
+        with destination:
+            source.backup(destination)
+        destination.close()
+        source.close()
+        with backup_path.open("rb") as fh:
+            bot.send_document(message.chat.id, fh, caption="💾 Резервная копия базы Vitrina")
+    except Exception:
+        logger.exception("Database backup failed")
+        bot.send_message(message.chat.id, "Не удалось создать резервную копию базы.")
+
+
+# ============================================================
 # ERROR HANDLER
 # ============================================================
 
@@ -3206,6 +3515,13 @@ def id_handler(message):
 
 if __name__ == "__main__":
     init_db()
+
+    if not str(Path(DB_PATH)).startswith("/var/data/"):
+        logger.warning(
+            "DB_PATH=%s does not look like a Render persistent disk path. "
+            "For production set DB_PATH=/var/data/vitrina.db and mount a disk at /var/data.",
+            DB_PATH
+        )
 
     # Если BOT_USERNAME не указан в Render,
     # определяем его автоматически.
